@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Outfit, Atkinson_Hyperlegible } from "next/font/google";
 import { cn } from "@/lib/utils";
+
+const atkinsonHyperlegibleAtkinson = Atkinson_Hyperlegible({subsets:['latin'],weight:['400','700'],variable:'--font-atkinson'});
+
+const outfitOutfit = Outfit({subsets:['latin'],weight:['300','400','500','600','700'],variable:'--font-outfit'});
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -15,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="en" className={cn( geist.variable, outfitOutfit.variable, atkinsonHyperlegibleAtkinson.variable)}>
       <body style={{ margin: 0, background: "#0b1320" }}>{children}</body>
     </html>
   );
