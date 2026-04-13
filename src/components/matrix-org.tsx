@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/button";
 import { TabGroup, TabGroupItem } from "@/components/tab-group";
 import { Input } from "@/components/ui/input";
@@ -879,31 +881,43 @@ export default function MatrixOrg() {
   const [org,        setOrg]        = useState<any>(initData);
   const [saved,      setSaved]      = useState(false);
   const [loaded,     setLoaded]     = useState(false);
+  const [saving,     setSaving]     = useState(false);
 
-  // Load from storage on mount
+  // Convex hooks
+  const convexData = useQuery(api.orgData.get, { key: "default" });
+  const saveToConvex = useMutation(api.orgData.save);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load from Convex on first data arrival
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("gloo-matrix-org");
-      if (stored) {
-        setOrg(JSON.parse(stored));
+    if (loaded) return;
+    if (convexData === undefined) return; // still loading
+    if (convexData && convexData.data) {
+      try {
+        setOrg(JSON.parse(convexData.data));
+      } catch {
+        // bad data, use defaults
       }
-    } catch {
-      // no saved data yet, use initData
     }
     setLoaded(true);
-  }, []);
+  }, [convexData, loaded]);
 
-  // Auto-save whenever org changes (after initial load)
+  // Debounced auto-save to Convex whenever org changes (after initial load)
   useEffect(() => {
     if (!loaded) return;
-    try {
-      localStorage.setItem("gloo-matrix-org", JSON.stringify(org));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      // storage error
-    }
-  }, [org, loaded]);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      setSaving(true);
+      saveToConvex({ key: "default", data: JSON.stringify(org) })
+        .then(() => {
+          setSaved(true);
+          setSaving(false);
+          setTimeout(() => setSaved(false), 2000);
+        })
+        .catch(() => setSaving(false));
+    }, 800); // debounce 800ms
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [org, loaded, saveToConvex]);
   const [showAddCol, setShowAddCol] = useState(false);
   const [showAddRow, setShowAddRow] = useState(false);
   const [view,       setView]       = useState("people");
@@ -950,6 +964,17 @@ export default function MatrixOrg() {
   return (
     <div style={{ fontFamily:"Georgia, Times New Roman, serif", background:"#070d14", minHeight:"100vh", color:"#e2e8f0", padding:"28px 20px" }}>
 
+      {/* Loading state while Convex data loads */}
+      {!loaded && (
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"60vh" }}>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:"12px", color:"#475569", fontFamily:"Courier New, monospace", letterSpacing:"2px" }}>Loading...</div>
+          </div>
+        </div>
+      )}
+
+      {loaded && (<>
+
       {showAddCol && <AddColModal onAdd={addProduct} onClose={()=>setShowAddCol(false)} />}
       {showAddRow && <AddRowModal onAdd={addLayer}   onClose={()=>setShowAddRow(false)} />}
       {jdOpen     && <JDModal layerId={jdOpen.layerId} layer={jdOpen.layer} onClose={()=>setJdOpen(null)} />
@@ -962,15 +987,15 @@ export default function MatrixOrg() {
           ✎ Click any name to rename · hover chips for JD button and × to remove · + to add a role
         </span>
         <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-          <span style={{ fontSize:"10px", fontFamily:"Courier New, monospace", color: saved ? "#3ecf8e" : "#334155", transition:"color 0.3s" }}>
-            {saved ? "✓ saved" : "auto-saving"}
+          <span style={{ fontSize:"10px", fontFamily:"Courier New, monospace", color: saved ? "#3ecf8e" : saving ? "#facc15" : "#334155", transition:"color 0.3s" }}>
+            {saved ? "✓ saved to cloud" : saving ? "saving..." : "auto-saving"}
           </span>
           <Button variant="ghost" size="sm"
             onClick={() => { navigator.clipboard.writeText(JSON.stringify(org, null, 2)).then(()=>alert("Copied! Paste it to Claude to hardcode permanently.")); }}
             className="text-[9px] font-mono tracking-wider text-emerald-400 border border-emerald-400/25 hover:border-emerald-400"
           >EXPORT</Button>
           <Button variant="ghost" size="sm"
-            onClick={() => { if (window.confirm("Reset to defaults? This will clear all edits.")) { localStorage.removeItem("gloo-matrix-org"); setOrg(initData); } }}
+            onClick={() => { if (window.confirm("Reset to defaults? This will clear all edits.")) { setOrg(initData); } }}
             className="text-[9px] font-mono tracking-wider text-slate-500 border border-slate-800 hover:text-red-500"
           >RESET</Button>
         </div>
@@ -1212,6 +1237,7 @@ export default function MatrixOrg() {
 
       {/* inject JD badge hover style */}
       <style>{`td:hover .jd-hint { opacity: 1 !important; }`}</style>
+      </>)}
     </div>
   );
 }
