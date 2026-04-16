@@ -20,10 +20,10 @@ import "../app/globals.css";
 
 /* ─── STAGES ─── */
 const STAGES: Record<string, { label: string; color: string }> = {
-  stabilize:  { label: "Stabilize",  color: "#f97316" },
-  modernize:  { label: "Modernize",  color: "#8b5cf6" },
-  productize: { label: "Productize", color: "#22c55e" },
-  all:        { label: "All Stages", color: "#94a3b8" },
+  stabilize:  { label: "Stabilize",  color: "hsl(38 100% 50%)" },
+  modernize:  { label: "Modernize",  color: "hsl(178 91% 34%)" },
+  productize: { label: "Productize", color: "hsl(160 100% 12%)" },
+  all:        { label: "All Stages", color: "hsl(47 8% 81%)" },
 };
 
 /* ─── JOB DESCRIPTIONS ─── */
@@ -95,17 +95,17 @@ const layerDescriptions: Record<string, any> = {
 
 const initData = {
   layers: [
-    { id: "dataAnalytics", label: "Data & Analytics", sublabel: "Reporting · BI · Insights", lead: { name: "TBD", role: "Data & Analytics Lead" }, accent: "#3b82f6" },
-    { id: "enterpriseSys", label: "Enterprise Systems", sublabel: "ERP · HRIS · Finance · Internal Tools", lead: { name: "TBD", role: "Enterprise Systems Lead" }, accent: "#8b5cf6" },
-    { id: "coreInfra", label: "Core Infrastructure", sublabel: "Cloud · DevOps · Networking", lead: { name: "TBD", role: "Core Infrastructure Lead" }, accent: "#10b981" },
-    { id: "security", label: "Security", sublabel: "AppSec · Compliance · Risk", lead: { name: "TBD", role: "Security Lead" }, accent: "#f59e0b" },
-    { id: "helpDesk", label: "Help Desk", sublabel: "Support · Ticketing · Escalation", lead: { name: "TBD", role: "Help Desk Lead" }, accent: "#6b7280" },
-    { id: "product", label: "Product", sublabel: "Outcomes · Roadmap · Research", lead: { name: "TBD", role: "Outcome Product Lead" }, accent: "#ec4899" },
-    { id: "design", label: "Design", sublabel: "Experience Systems · Design System", lead: { name: "Matthew Slaughter", role: "Head of Design" }, accent: "#f97316" },
-    { id: "platformEng", label: "Platform Solution Engineer", sublabel: "Forward Deployment · Config · Agents", lead: { name: "Casey", role: "Application Layer Lead" }, accent: "#0ea5e9" },
-    { id: "appEng", label: "Application Layer Engineer", sublabel: "Platform Architecture · Unified Surface", lead: { name: "Casey", role: "Application Layer Lead" }, accent: "#6366f1" },
-    { id: "services", label: "Shared Solutions", sublabel: "Agent Orchestration · Skills · Trust Fabric", lead: { name: "Brian Johnson", role: "Platform Services Lead" }, accent: "#22c55e" },
-    { id: "infra", label: "Infrastructure & Data", sublabel: "Gloo Brain · Data · Auditability", lead: { name: "Daniel Wilson", role: "Head of AI Engineering" }, accent: "#a855f7" },
+    { id: "dataAnalytics", label: "Data & Analytics", sublabel: "Reporting · BI · Insights", lead: { name: "TBD", role: "Data & Analytics Lead" }, accent: "hsl(222 97% 55%)" },
+    { id: "enterpriseSys", label: "Enterprise Systems", sublabel: "ERP · HRIS · Finance · Internal Tools", lead: { name: "TBD", role: "Enterprise Systems Lead" }, accent: "hsl(250 100% 69%)" },
+    { id: "coreInfra", label: "Core Infrastructure", sublabel: "Cloud · DevOps · Networking", lead: { name: "TBD", role: "Core Infrastructure Lead" }, accent: "hsl(168 100% 53%)" },
+    { id: "security", label: "Security", sublabel: "AppSec · Compliance · Risk", lead: { name: "TBD", role: "Security Lead" }, accent: "hsl(38 100% 50%)" },
+    { id: "helpDesk", label: "Help Desk", sublabel: "Support · Ticketing · Escalation", lead: { name: "TBD", role: "Help Desk Lead" }, accent: "hsl(47 8% 81%)" },
+    { id: "product", label: "Product", sublabel: "Outcomes · Roadmap · Research", lead: { name: "TBD", role: "Outcome Product Lead" }, accent: "hsl(0 100% 75%)" },
+    { id: "design", label: "Design", sublabel: "Experience Systems · Design System", lead: { name: "Matthew Slaughter", role: "Head of Design" }, accent: "hsl(178 91% 34%)" },
+    { id: "platformEng", label: "Platform Solution Engineer", sublabel: "Forward Deployment · Config · Agents", lead: { name: "Casey", role: "Application Layer Lead" }, accent: "hsl(193 87% 40%)" },
+    { id: "appEng", label: "Application Layer Engineer", sublabel: "Platform Architecture · Unified Surface", lead: { name: "Casey", role: "Application Layer Lead" }, accent: "hsl(188 100% 71%)" },
+    { id: "services", label: "Shared Solutions", sublabel: "Agent Orchestration · Skills · Trust Fabric", lead: { name: "Brian Johnson", role: "Platform Services Lead" }, accent: "hsl(157 94% 31%)" },
+    { id: "infra", label: "Infrastructure & Data", sublabel: "Gloo Brain · Data · Auditability", lead: { name: "Daniel Wilson", role: "Head of AI Engineering" }, accent: "hsl(191 100% 13%)" },
   ],
   products: [
     { id: "church", name: "Church", type: "church", productLead: "TBD", cells: { product: [{ name: "Outcome Product Lead", stage: "all" }], design: [{ name: "Experience Systems Designer", stage: "all" }], appEng: [{ name: "App Layer Eng 1", stage: "modernize" },{ name: "App Layer Eng 2", stage: "productize" }], platformEng: [{ name: "PSE 1", stage: "stabilize" },{ name: "PSE 2", stage: "stabilize" },{ name: "PSE 3", stage: "modernize" }], services: [{ name: "Shared Solutions Eng 1", stage: "modernize" },{ name: "Shared Solutions Eng 2", stage: "productize" }], infra: [{ name: "Infra Eng 1", stage: "stabilize" },{ name: "Infra Eng 2", stage: "modernize" },{ name: "Infra Eng 3", stage: "productize" }], dataAnalytics: [{ name: "Data Analyst 1", stage: "all" }], enterpriseSys: [{ name: "Enterprise Sys Eng 1", stage: "stabilize" }], coreInfra: [{ name: "Core Infra Eng 1", stage: "all" }], security: [{ name: "Security Eng 1", stage: "all" }], helpDesk: [{ name: "Help Desk 1", stage: "stabilize" }] }},
@@ -117,16 +117,16 @@ const initData = {
   innovation: ["Matt Michel"],
   innovationLead: "Matt",
   executives: [
-    { id: "exec1", name: "Justin", role: "IT & Operations Leader", accent: "#3b82f6", layers: ["dataAnalytics","enterpriseSys","coreInfra","security","helpDesk"] },
-    { id: "exec2", name: "TBD", role: "Product Leader", accent: "#ec4899", layers: ["product"] },
-    { id: "exec3", name: "Daniel", role: "Engineering Leader", accent: "#22c55e", layers: ["design","platformEng","appEng","services","infra"] },
+    { id: "exec1", name: "Justin", role: "IT & Operations Leader", accent: "hsl(222 97% 55%)", layers: ["dataAnalytics","enterpriseSys","coreInfra","security","helpDesk"] },
+    { id: "exec2", name: "TBD", role: "Product Leader", accent: "hsl(0 100% 75%)", layers: ["product"] },
+    { id: "exec3", name: "Daniel", role: "Engineering Leader", accent: "hsl(178 91% 34%)", layers: ["design","platformEng","appEng","services","infra"] },
   ],
 };
 
 const typeConfig: Record<string, { badgeColor: string; label: string; headerClass: string; bgClass: string; textClass: string }> = {
-  church: { badgeColor: "#3b82f6", label: "Church", headerClass: "product-header church", bgClass: "bg-blue-100", textClass: "text-blue-700" },
-  "360":  { badgeColor: "#eab308", label: "360°",   headerClass: "product-header type-360", bgClass: "bg-yellow-100", textClass: "text-yellow-700" },
-  gloo:   { badgeColor: "#22c55e", label: "Gloo",   headerClass: "product-header gloo", bgClass: "bg-green-100", textClass: "text-green-700" },
+  church: { badgeColor: "hsl(222 97% 55%)", label: "Church", headerClass: "product-header church", bgClass: "bg-[hsl(202_100%_90%)]", textClass: "text-[hsl(238_48%_22%)]" },
+  "360":  { badgeColor: "hsl(38 100% 50%)", label: "360°",   headerClass: "product-header type-360", bgClass: "bg-[hsl(50_100%_94%)]", textClass: "text-[hsl(38_100%_50%)]" },
+  gloo:   { badgeColor: "hsl(178 91% 34%)", label: "Gloo",   headerClass: "product-header gloo", bgClass: "bg-[hsl(169_82%_90%)]", textClass: "text-[hsl(191_100%_13%)]" },
 };
 
 function uid() { return Math.random().toString(36).slice(2, 8); }
@@ -226,7 +226,7 @@ function JDModalContent({ layerId, layer }: any) {
           <p className="text-[11px] font-bold uppercase tracking-wide mb-2">Looking For</p>
           {jd.looking.map((l: string, i: number) => (
             <div key={i} className="flex gap-1.5 mb-1.5 items-start">
-              <span style={{ color: "#6366f1", fontSize: 8, marginTop: 5 }}>◆</span>
+              <span style={{ color: "hsl(178 91% 34%)", fontSize: 8, marginTop: 5 }}>◆</span>
               <p className="text-xs text-gray-500 leading-relaxed">{l}</p>
             </div>
           ))}
@@ -235,17 +235,17 @@ function JDModalContent({ layerId, layer }: any) {
           <p className="text-[11px] font-bold uppercase tracking-wide mb-2">Success Looks Like</p>
           {jd.success.map((s: string, i: number) => (
             <div key={i} className="flex gap-1.5 mb-1.5 items-start">
-              <span style={{ color: "#22c55e", fontSize: 8, marginTop: 5 }}>◆</span>
+              <span style={{ color: "hsl(157 94% 31%)", fontSize: 8, marginTop: 5 }}>◆</span>
               <p className="text-xs text-gray-500 leading-relaxed">{s}</p>
             </div>
           ))}
         </div>
       </div>
-      <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 mt-4">
+      <div className="rounded-xl bg-[hsl(0_90%_94%)] border border-[hsl(0_90%_94%)] px-4 py-3 mt-4">
         <p className="text-[10px] font-bold text-red-600 uppercase tracking-wide mb-1">Not This</p>
         <p className="text-sm text-gray-500 italic">{jd.notThis}</p>
       </div>
-      <div className="rounded-xl border border-green-200 px-4 py-3 mt-3" style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)" }}>
+      <div className="rounded-xl border border-[hsl(169_82%_90%)] px-4 py-3 mt-3" style={{ background: "linear-gradient(135deg, hsl(169 82% 90%), hsl(169 82% 90% / 0.5))" }}>
         <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-1">On Human Flourishing</p>
         <p className="text-sm text-gray-500">{jd.flourishing}</p>
       </div>
@@ -282,15 +282,15 @@ function LayerView({ layers }: any) {
                   <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: layer.accent }}>Key Outputs</p>
                   <div className="flex flex-wrap gap-1">
                     {desc.outputs.map((o: string, i: number) => (
-                      <span key={i} className="rounded px-2 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-700">{o}</span>
+                      <span key={i} className="rounded px-2 py-0.5 text-xs font-medium bg-[hsl(169_82%_90%)] text-[hsl(191_100%_13%)]">{o}</span>
                     ))}
                   </div>
                 </div>
-                <div className="rounded-lg bg-red-50 px-3 py-2">
+                <div className="rounded-lg bg-[hsl(0_90%_94%)] px-3 py-2">
                   <p className="text-[10px] font-bold text-red-600 mb-1">NOT THIS</p>
                   <p className="text-xs text-gray-500 italic">{desc.notThis}</p>
                 </div>
-                <div className="rounded-lg px-3 py-2" style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)" }}>
+                <div className="rounded-lg px-3 py-2" style={{ background: "linear-gradient(135deg, hsl(169 82% 90%), hsl(169 82% 90% / 0.5))" }}>
                   <p className="text-[10px] font-bold text-teal-600 mb-1">FLOURISHING</p>
                   <p className="text-xs text-gray-500">{desc.flourishing}</p>
                 </div>
@@ -353,7 +353,7 @@ export default function MatrixOrg() {
   const updateCellItem = (pId: string, lId: string, idx: number, field: string, val: string) => setOrg((o: any) => ({ ...o, products: o.products.map((p: any) => { if (p.id !== pId) return p; const n = [...(p.cells[lId] || [])]; n[idx] = { ...n[idx], [field]: val }; return { ...p, cells: { ...p.cells, [lId]: n } }; }) }));
   const deleteCellItem = (pId: string, lId: string, idx: number) => setOrg((o: any) => ({ ...o, products: o.products.map((p: any) => { if (p.id !== pId) return p; const n = [...(p.cells[lId] || [])]; n.splice(idx, 1); return { ...p, cells: { ...p.cells, [lId]: n } }; }) }));
   const addCellItem = (pId: string, lId: string, name: string, stage: string) => setOrg((o: any) => ({ ...o, products: o.products.map((p: any) => { if (p.id !== pId) return p; return { ...p, cells: { ...p.cells, [lId]: [...(p.cells[lId] || []), { name, stage }] } }; }) }));
-  const addExecutive = () => { const e = { id: uid(), name: "New Leader", role: "Role", accent: "#6366f1", layers: [] as string[] }; setOrg((o: any) => ({ ...o, executives: [...(o.executives || []), e] })); setAssignOpen(e); };
+  const addExecutive = () => { const e = { id: uid(), name: "New Leader", role: "Role", accent: "hsl(178 91% 34%)", layers: [] as string[] }; setOrg((o: any) => ({ ...o, executives: [...(o.executives || []), e] })); setAssignOpen(e); };
   const removeExecutive = (id: string) => setOrg((o: any) => ({ ...o, executives: (o.executives || []).filter((e: any) => e.id !== id) }));
   const updateExecName = (id: string, v: string) => setOrg((o: any) => ({ ...o, executives: (o.executives || []).map((e: any) => e.id === id ? { ...e, name: v } : e) }));
   const updateExecRole = (id: string, v: string) => setOrg((o: any) => ({ ...o, executives: (o.executives || []).map((e: any) => e.id === id ? { ...e, role: v } : e) }));
@@ -377,7 +377,7 @@ export default function MatrixOrg() {
     <div className="flex h-screen items-center justify-center">
       <div className="flex gap-1.5">
         {[0, 1, 2].map(i => (
-          <div key={i} className="size-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+          <div key={i} className="size-2 rounded-full bg-[hsl(178_91%_34%)] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
         ))}
       </div>
     </div>
@@ -643,13 +643,13 @@ export default function MatrixOrg() {
                 <td className="exec-cell" />
                 <td>
                   <div className="flex gap-2.5 items-start">
-                    <div className="layer-bar" style={{ background: "#8b5cf6" }} />
+                    <div className="layer-bar" style={{ background: "hsl(250 100% 69%)" }} />
                     <div>
                       <div className="text-[13px] font-bold text-gray-900">Product / Platform Innovation</div>
-                      <div className="text-[10px] font-mono mb-2" style={{ color: "#8b5cf6" }}>Bleeding Edge R&D</div>
+                      <div className="text-[10px] font-mono mb-2" style={{ color: "hsl(250 100% 69%)" }}>Bleeding Edge R&D</div>
                       <div className="rounded-lg bg-gray-50 px-2.5 py-1.5">
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#8b5cf6" }}>
-                          <ET value={org.innovationLead} onChange={(v: string) => setOrg((o: any) => ({ ...o, innovationLead: v }))} style={{ fontWeight: 600, color: "#8b5cf6" }} />
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "hsl(250 100% 69%)" }}>
+                          <ET value={org.innovationLead} onChange={(v: string) => setOrg((o: any) => ({ ...o, innovationLead: v }))} style={{ fontWeight: 600, color: "hsl(250 100% 69%)" }} />
                         </div>
                         <div className="text-[9px] text-gray-400">Innovation Lead</div>
                       </div>
@@ -686,7 +686,7 @@ export default function MatrixOrg() {
             <span className="text-[10px] font-bold text-gray-400 uppercase">Columns:</span>
             <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700">Church</span>
             <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-yellow-100 text-yellow-700">360°</span>
-            <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700">Gloo</span>
+            <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-[hsl(169_82%_90%)] text-[hsl(191_100%_13%)]">Gloo</span>
           </div>
           <div className="w-px h-4 bg-gray-200" />
           <div className="flex items-center gap-1.5">
@@ -767,7 +767,7 @@ function AddRowModal({ opened, onClose, onAdd }: any) {
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => { onAdd({ label: label.trim() || "New Layer", sublabel: sublabel.trim(), lead: { name: leadName.trim() || "TBD", role: leadRole.trim() || "Layer Lead" }, accent: "#6366f1" }); }}>Add</Button>
+          <Button variant="primary" onClick={() => { onAdd({ label: label.trim() || "New Layer", sublabel: sublabel.trim(), lead: { name: leadName.trim() || "TBD", role: leadRole.trim() || "Layer Lead" }, accent: "hsl(178 91% 34%)" }); }}>Add</Button>
         </div>
       </div>
     </Modal>
