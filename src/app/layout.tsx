@@ -1,3 +1,4 @@
+import "./globals.css";
 import { ConvexClientProvider } from "@/components/convex-provider";
 import { Outfit, Atkinson_Hyperlegible } from "next/font/google";
 import { cn } from "@/lib/utils";
