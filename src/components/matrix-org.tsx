@@ -131,6 +131,33 @@ const typeConfig: Record<string, { badgeColor: string; label: string; headerClas
 
 function uid() { return Math.random().toString(36).slice(2, 8); }
 
+/* ─── COLOR MIGRATION: hex → Gloo HSL tokens ─── */
+const COLOR_MIGRATION: Record<string, string> = {
+  "#3b82f6": "hsl(222 97% 55%)",
+  "#8b5cf6": "hsl(250 100% 69%)",
+  "#10b981": "hsl(168 100% 53%)",
+  "#f59e0b": "hsl(38 100% 50%)",
+  "#6b7280": "hsl(47 8% 81%)",
+  "#ec4899": "hsl(0 100% 75%)",
+  "#f97316": "hsl(178 91% 34%)",
+  "#0ea5e9": "hsl(193 87% 40%)",
+  "#6366f1": "hsl(178 91% 34%)",
+  "#22c55e": "hsl(157 94% 31%)",
+  "#a855f7": "hsl(191 100% 13%)",
+};
+
+function migrateColors(data: any): any {
+  if (!data) return data;
+  const migrate = (color: string) => COLOR_MIGRATION[color] || color;
+  if (data.layers) {
+    data.layers = data.layers.map((l: any) => ({ ...l, accent: migrate(l.accent) }));
+  }
+  if (data.executives) {
+    data.executives = data.executives.map((e: any) => ({ ...e, accent: migrate(e.accent) }));
+  }
+  return data;
+}
+
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -325,7 +352,7 @@ export default function MatrixOrg() {
   useEffect(() => {
     if (loaded) return;
     if (convexData === undefined) return;
-    if (convexData && convexData.data) { try { setOrg(JSON.parse(convexData.data)); } catch {} }
+    if (convexData && convexData.data) { try { setOrg(migrateColors(JSON.parse(convexData.data))); } catch {} }
     setLoaded(true);
   }, [convexData, loaded]);
 
