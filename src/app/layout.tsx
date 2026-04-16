@@ -4,6 +4,12 @@ import { MantineProvider, createTheme } from "@mantine/core";
 import { ModalsProvider } from "@mantine/modals";
 import "@mantine/core/styles.css";
 import { ConvexClientProvider } from "@/components/convex-provider";
+import { Outfit, Atkinson_Hyperlegible } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const atkinsonHyperlegibleAtkinson = Atkinson_Hyperlegible({subsets:['latin'],weight:['400','700'],variable:'--font-atkinson'});
+
+const outfitOutfit = Outfit({subsets:['latin'],weight:['300','400','500','600','700'],variable:'--font-outfit'});
 
 const theme = createTheme({
   primaryColor: "indigo",
@@ -22,7 +28,7 @@ const theme = createTheme({
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn(outfitOutfit.variable, atkinsonHyperlegibleAtkinson.variable)}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
