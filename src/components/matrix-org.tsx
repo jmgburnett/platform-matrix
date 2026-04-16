@@ -4,22 +4,26 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
-  Table, Badge, Modal, Button, TextInput, Group, Stack, Text, Title,
-  SegmentedControl, ActionIcon, Tooltip, Paper, Box, Flex, Divider,
-  Checkbox, Loader, Center, Container, SimpleGrid,
-} from "@mantine/core";
-import {
   IconPlus, IconTrash, IconArrowUp, IconArrowDown, IconArrowLeft, IconArrowRight,
   IconRefresh, IconDownload, IconFileDescription, IconChevronDown, IconChevronRight,
 } from "@tabler/icons-react";
+import { Button } from "@/components/button";
+import { IconButton } from "@/components/icon-button";
+import { TabGroup, TabGroupItem } from "@/components/tab-group";
+import { Avatar, AvatarFallback } from "@/components/avatar";
+import { Checkbox } from "@/components/checkbox";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Modal } from "@/components/modal";
+import { cn } from "@/lib/utils";
 import "../app/globals.css";
 
 /* ─── STAGES ─── */
-const STAGES: Record<string, { label: string; color: string; mantine: string }> = {
-  stabilize:  { label: "Stabilize",  color: "#f97316", mantine: "orange" },
-  modernize:  { label: "Modernize",  color: "#8b5cf6", mantine: "violet" },
-  productize: { label: "Productize", color: "#22c55e", mantine: "green" },
-  all:        { label: "All Stages", color: "#94a3b8", mantine: "gray" },
+const STAGES: Record<string, { label: string; color: string }> = {
+  stabilize:  { label: "Stabilize",  color: "#f97316" },
+  modernize:  { label: "Modernize",  color: "#8b5cf6" },
+  productize: { label: "Productize", color: "#22c55e" },
+  all:        { label: "All Stages", color: "#94a3b8" },
 };
 
 /* ─── JOB DESCRIPTIONS ─── */
@@ -119,16 +123,22 @@ const initData = {
   ],
 };
 
-const typeConfig: Record<string, { badge: string; mantine: string; label: string; headerClass: string }> = {
-  church: { badge: "#3b82f6", mantine: "blue", label: "Church", headerClass: "product-header church" },
-  "360":  { badge: "#eab308", mantine: "yellow", label: "360°", headerClass: "product-header type-360" },
-  gloo:   { badge: "#22c55e", mantine: "green", label: "Gloo", headerClass: "product-header gloo" },
+const typeConfig: Record<string, { badgeColor: string; label: string; headerClass: string; bgClass: string; textClass: string }> = {
+  church: { badgeColor: "#3b82f6", label: "Church", headerClass: "product-header church", bgClass: "bg-blue-100", textClass: "text-blue-700" },
+  "360":  { badgeColor: "#eab308", label: "360°",   headerClass: "product-header type-360", bgClass: "bg-yellow-100", textClass: "text-yellow-700" },
+  gloo:   { badgeColor: "#22c55e", label: "Gloo",   headerClass: "product-header gloo", bgClass: "bg-green-100", textClass: "text-green-700" },
 };
 
 function uid() { return Math.random().toString(36).slice(2, 8); }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 /* ── Inline editable text ── */
-function ET({ value, onChange, style }: any) {
+function ET({ value, onChange, style }: { value: string; onChange: (v: string) => void; style?: React.CSSProperties }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLInputElement>(null);
@@ -138,10 +148,11 @@ function ET({ value, onChange, style }: any) {
   if (editing) return (
     <input ref={ref} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
       onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
-      style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "2px 8px", fontSize: "inherit", fontFamily: "inherit", color: "#1a1d23", outline: "none", width: "100%", ...style }} />
+      className="bg-gray-100 border border-gray-200 rounded px-2 py-0.5 text-inherit font-inherit text-gray-900 outline-none w-full"
+      style={style} />
   );
   return (
-    <span onClick={() => setEditing(true)} style={{ cursor: "text", borderBottom: "1px dashed #d1d5db", ...style }}>{value || "—"}</span>
+    <span onClick={() => setEditing(true)} className="cursor-text border-b border-dashed border-gray-300" style={style}>{value || "—"}</span>
   );
 }
 
@@ -152,27 +163,39 @@ function PersonChip({ name, stage, onRename, onStageChange, onDelete, onJD, dimm
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
   const commit = () => { setEditing(false); if (draft.trim() && draft.trim() !== name) onRename(draft.trim()); else setDraft(name); };
-  const stageInfo = STAGES[stage] || STAGES.all;
 
   return (
     <div className="person-chip" style={{ opacity: dimmed ? 0.25 : 1 }}>
       <div className={`stage-dot ${stage}`} />
+      <Avatar className="size-5 shrink-0">
+        <AvatarFallback seed={name} className="text-[6px] font-bold">
+          {getInitials(name)}
+        </AvatarFallback>
+      </Avatar>
       {editing ? (
         <input ref={ref} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
           onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(name); setEditing(false); } }}
-          style={{ background: "transparent", border: "none", fontSize: 12, color: "#1a1d23", outline: "none", width: Math.max(60, draft.length * 7), fontFamily: "inherit" }} />
+          className="bg-transparent border-none text-xs text-gray-900 outline-none font-medium"
+          style={{ width: Math.max(60, draft.length * 7) }} />
       ) : (
-        <span onClick={() => setEditing(true)} style={{ cursor: "text", fontSize: 12, color: "#374151", fontWeight: 500 }}>{name}</span>
+        <span onClick={() => setEditing(true)} className="cursor-text text-xs text-gray-700 font-medium">{name}</span>
       )}
       <div className="chip-actions">
         {onJD && (
-          <Tooltip label="Job Description"><ActionIcon size={16} variant="transparent" color="gray" onClick={onJD}><IconFileDescription size={11} /></ActionIcon></Tooltip>
+          <button type="button" onClick={onJD} title="Job Description" aria-label="Job Description"
+            className="flex size-4 items-center justify-center rounded text-gray-400 hover:text-gray-600 transition-colors">
+            <IconFileDescription size={11} />
+          </button>
         )}
-        <Tooltip label="Cycle stage"><ActionIcon size={16} variant="transparent" color="gray" onClick={() => {
-          const order = ["stabilize","modernize","productize","all"];
-          onStageChange(order[(order.indexOf(stage) + 1) % order.length]);
-        }}><IconRefresh size={11} /></ActionIcon></Tooltip>
-        <Tooltip label="Remove"><ActionIcon size={16} variant="transparent" color="red" onClick={onDelete}><IconTrash size={11} /></ActionIcon></Tooltip>
+        <button type="button" title="Cycle stage" aria-label="Cycle stage"
+          onClick={() => { const order = ["stabilize","modernize","productize","all"]; onStageChange(order[(order.indexOf(stage) + 1) % order.length]); }}
+          className="flex size-4 items-center justify-center rounded text-gray-400 hover:text-gray-600 transition-colors">
+          <IconRefresh size={11} />
+        </button>
+        <button type="button" onClick={onDelete} title="Remove" aria-label="Remove"
+          className="flex size-4 items-center justify-center rounded text-gray-400 hover:text-red-500 transition-colors">
+          <IconTrash size={11} />
+        </button>
       </div>
     </div>
   );
@@ -185,46 +208,46 @@ function JDModalContent({ layerId, layer }: any) {
   return (
     <div className="animate-in">
       <div style={{ borderLeft: `4px solid ${layer.accent}`, paddingLeft: 16, marginBottom: 20 }}>
-        <Text fz={11} fw={600} c="dimmed" tt="uppercase" lts={1} mb={2}>{layer.label}</Text>
-        <Title order={3} mb={4}>{jd.title}</Title>
-        <Text fz="sm" c="dimmed">Reports to {jd.reports}</Text>
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">{layer.label}</p>
+        <h3 className="text-xl font-bold text-gray-900 mb-1">{jd.title}</h3>
+        <p className="text-sm text-gray-500">Reports to {jd.reports}</p>
       </div>
-      <Text fz="sm" c="dark" lh={1.8} mb="lg">{jd.what}</Text>
-      <Text fz={11} fw={700} c="dark" tt="uppercase" lts={1} mb="xs">Responsibilities</Text>
+      <p className="text-sm text-gray-800 leading-relaxed mb-4">{jd.what}</p>
+      <p className="text-[11px] font-bold text-gray-900 uppercase tracking-wide mb-2">Responsibilities</p>
       {jd.responsibilities.map((r: string, i: number) => (
-        <Group key={i} gap={8} mb={8} align="flex-start" wrap="nowrap">
+        <div key={i} className="flex gap-2 mb-2 items-start">
           <span style={{ color: layer.accent, fontSize: 10, marginTop: 4 }}>●</span>
-          <Text fz="sm" lh={1.6} c="dimmed">{r}</Text>
-        </Group>
+          <p className="text-sm leading-relaxed text-gray-500">{r}</p>
+        </div>
       ))}
-      <Divider my="md" />
-      <SimpleGrid cols={2} spacing="lg">
+      <Separator className="my-4" />
+      <div className="grid grid-cols-2 gap-4">
         <div>
-          <Text fz={11} fw={700} tt="uppercase" lts={1} mb="xs">Looking For</Text>
+          <p className="text-[11px] font-bold uppercase tracking-wide mb-2">Looking For</p>
           {jd.looking.map((l: string, i: number) => (
-            <Group key={i} gap={6} mb={6} align="flex-start" wrap="nowrap">
+            <div key={i} className="flex gap-1.5 mb-1.5 items-start">
               <span style={{ color: "#6366f1", fontSize: 8, marginTop: 5 }}>◆</span>
-              <Text fz="xs" c="dimmed" lh={1.5}>{l}</Text>
-            </Group>
+              <p className="text-xs text-gray-500 leading-relaxed">{l}</p>
+            </div>
           ))}
         </div>
         <div>
-          <Text fz={11} fw={700} tt="uppercase" lts={1} mb="xs">Success Looks Like</Text>
+          <p className="text-[11px] font-bold uppercase tracking-wide mb-2">Success Looks Like</p>
           {jd.success.map((s: string, i: number) => (
-            <Group key={i} gap={6} mb={6} align="flex-start" wrap="nowrap">
+            <div key={i} className="flex gap-1.5 mb-1.5 items-start">
               <span style={{ color: "#22c55e", fontSize: 8, marginTop: 5 }}>◆</span>
-              <Text fz="xs" c="dimmed" lh={1.5}>{s}</Text>
-            </Group>
+              <p className="text-xs text-gray-500 leading-relaxed">{s}</p>
+            </div>
           ))}
         </div>
-      </SimpleGrid>
-      <div style={{ background: "#fef2f2", borderRadius: 12, padding: "14px 18px", marginTop: 16, border: "1px solid #fecaca" }}>
-        <Text fz={10} fw={700} c="red" tt="uppercase" lts={1} mb={4}>Not This</Text>
-        <Text fz="sm" c="dimmed" fs="italic">{jd.notThis}</Text>
       </div>
-      <div style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)", borderRadius: 12, padding: "14px 18px", marginTop: 12, border: "1px solid #bbf7d0" }}>
-        <Text fz={10} fw={700} c="teal" tt="uppercase" lts={1} mb={4}>On Human Flourishing</Text>
-        <Text fz="sm" c="dimmed">{jd.flourishing}</Text>
+      <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 mt-4">
+        <p className="text-[10px] font-bold text-red-600 uppercase tracking-wide mb-1">Not This</p>
+        <p className="text-sm text-gray-500 italic">{jd.notThis}</p>
+      </div>
+      <div className="rounded-xl border border-green-200 px-4 py-3 mt-3" style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)" }}>
+        <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-1">On Human Flourishing</p>
+        <p className="text-sm text-gray-500">{jd.flourishing}</p>
       </div>
     </div>
   );
@@ -233,45 +256,50 @@ function JDModalContent({ layerId, layer }: any) {
 /* ── Layer View ── */
 function LayerView({ layers }: any) {
   return (
-    <Stack gap="lg">
+    <div className="flex flex-col gap-4">
       {layers.map((layer: any) => {
         const desc = layerDescriptions[layer.id];
         if (!desc) return null;
         return (
           <div key={layer.id} className="glass-card animate-in" style={{ padding: 24, overflow: "hidden" }}>
             <div style={{ borderLeft: `4px solid ${layer.accent}`, paddingLeft: 16, marginBottom: 16 }}>
-              <Text fz="xl" fw={700} c="dark">{layer.label}</Text>
-              <Text fz="xs" c="dimmed" ff="monospace">{layer.sublabel}</Text>
+              <p className="text-xl font-bold text-gray-900">{layer.label}</p>
+              <p className="text-xs text-gray-400 font-mono">{layer.sublabel}</p>
             </div>
-            <Text fz="sm" c="dimmed" lh={1.7} mb="md">{desc.purpose}</Text>
-            <SimpleGrid cols={2}>
+            <p className="text-sm text-gray-500 leading-relaxed mb-4">{desc.purpose}</p>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Text fz={11} fw={700} tt="uppercase" lts={1} mb="xs" c={layer.accent}>What Happens Here</Text>
+                <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: layer.accent }}>What Happens Here</p>
                 {desc.activities.map((a: string, i: number) => (
-                  <Group key={i} gap={8} mb={6} wrap="nowrap"><span style={{ color: layer.accent, fontSize: 10, marginTop: 3 }}>▸</span><Text fz="sm" c="dimmed">{a}</Text></Group>
+                  <div key={i} className="flex gap-2 mb-1.5 items-start">
+                    <span style={{ color: layer.accent, fontSize: 10, marginTop: 3 }}>▸</span>
+                    <p className="text-sm text-gray-500">{a}</p>
+                  </div>
                 ))}
               </div>
-              <Stack gap="sm">
+              <div className="flex flex-col gap-3">
                 <div>
-                  <Text fz={11} fw={700} tt="uppercase" lts={1} mb="xs" c={layer.accent}>Key Outputs</Text>
-                  <Flex wrap="wrap" gap={4}>{desc.outputs.map((o: string, i: number) => (
-                    <Badge key={i} variant="light" color="indigo" size="sm" radius="sm">{o}</Badge>
-                  ))}</Flex>
+                  <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: layer.accent }}>Key Outputs</p>
+                  <div className="flex flex-wrap gap-1">
+                    {desc.outputs.map((o: string, i: number) => (
+                      <span key={i} className="rounded px-2 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-700">{o}</span>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ background: "#fef2f2", borderRadius: 10, padding: "10px 14px" }}>
-                  <Text fz={10} fw={700} c="red" mb={2}>NOT THIS</Text>
-                  <Text fz="xs" c="dimmed" fs="italic">{desc.notThis}</Text>
+                <div className="rounded-lg bg-red-50 px-3 py-2">
+                  <p className="text-[10px] font-bold text-red-600 mb-1">NOT THIS</p>
+                  <p className="text-xs text-gray-500 italic">{desc.notThis}</p>
                 </div>
-                <div style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)", borderRadius: 10, padding: "10px 14px" }}>
-                  <Text fz={10} fw={700} c="teal" mb={2}>FLOURISHING</Text>
-                  <Text fz="xs" c="dimmed">{desc.flourishing}</Text>
+                <div className="rounded-lg px-3 py-2" style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)" }}>
+                  <p className="text-[10px] font-bold text-teal-600 mb-1">FLOURISHING</p>
+                  <p className="text-xs text-gray-500">{desc.flourishing}</p>
                 </div>
-              </Stack>
-            </SimpleGrid>
+              </div>
+            </div>
           </div>
         );
       })}
-    </Stack>
+    </div>
   );
 }
 
@@ -345,20 +373,50 @@ export default function MatrixOrg() {
     else { let span = 0, j = si; while (j < org.layers.length && coverage[org.layers[j].id] === eId) { span++; j++; } segments.push({ exec: execById[eId], rowSpan: span }); for (let k = 1; k < span; k++) segments.push(null); si = j; }
   }
 
-  if (!loaded) return <Center h="100vh"><Loader color="indigo" type="dots" size="lg" /></Center>;
+  if (!loaded) return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="flex gap-1.5">
+        {[0, 1, 2].map(i => (
+          <div key={i} className="size-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8f9fc", padding: "24px 32px" }}>
       {/* Modals */}
-      <Modal opened={!!jdOpen} onClose={() => setJdOpen(null)} size="lg" padding="xl" radius="lg" overlayProps={{ backgroundOpacity: 0.3, blur: 4 }}>
+      <Modal opened={!!jdOpen} onClose={() => setJdOpen(null)} size="lg">
         {jdOpen && <JDModalContent layerId={jdOpen.layerId} layer={jdOpen.layer} />}
       </Modal>
-      <Modal opened={!!assignOpen} onClose={() => setAssignOpen(null)} title={<Text fw={600}>Assign rows → {assignOpen?.name}</Text>} radius="lg" overlayProps={{ backgroundOpacity: 0.3, blur: 4 }}>
-        {assignOpen && <Stack gap="xs" mt="sm">{org.layers.map((layer: any) => {
-          const checked = (assignOpen.layers || []).includes(layer.id);
-          return <Checkbox key={layer.id} label={layer.label} checked={checked} color="indigo" radius="sm"
-            onChange={() => { const ls = checked ? assignOpen.layers.filter((l: string) => l !== layer.id) : [...assignOpen.layers, layer.id]; updateExecLayers(assignOpen.id, ls); setAssignOpen({ ...assignOpen, layers: ls }); }} />;
-        })}</Stack>}
+      <Modal
+        opened={!!assignOpen}
+        onClose={() => setAssignOpen(null)}
+        title={`Assign rows → ${assignOpen?.name ?? ""}`}
+        size="md"
+      >
+        {assignOpen && (
+          <div className="flex flex-col gap-2 mt-1">
+            {org.layers.map((layer: any) => {
+              const checked = (assignOpen.layers || []).includes(layer.id);
+              return (
+                <label key={layer.id} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => {
+                      const ls = checked
+                        ? assignOpen.layers.filter((l: string) => l !== layer.id)
+                        : [...assignOpen.layers, layer.id];
+                      updateExecLayers(assignOpen.id, ls);
+                      setAssignOpen({ ...assignOpen, layers: ls });
+                    }}
+                  />
+                  <span className="text-sm text-gray-700">{layer.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
       </Modal>
       <AddColumnModal opened={addColOpen} onClose={() => setAddColOpen(false)} onAdd={addProduct} />
       <AddRowModal opened={addRowOpen} onClose={() => setAddRowOpen(false)} onAdd={addLayer} />
@@ -366,35 +424,52 @@ export default function MatrixOrg() {
 
       {/* ── Gradient Header ── */}
       <div className="gradient-header animate-in">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+        <div className="flex justify-between items-start flex-wrap gap-4">
           <div>
-            <Text fz={11} fw={500} style={{ opacity: 0.7 }} tt="uppercase" lts={3} mb={4}>Gloo — Platform & Product Team</Text>
-            <Title order={1} style={{ color: "white", fontSize: 28, letterSpacing: -0.5 }}>Platform Matrix Org</Title>
-            <Text fz="sm" style={{ opacity: 0.7 }} mt={4}>Q2 2026 · Draft pending Ben alignment</Text>
+            <p className="text-[11px] font-medium uppercase tracking-[3px] mb-1" style={{ opacity: 0.7 }}>Gloo — Platform & Product Team</p>
+            <h1 style={{ color: "white", fontSize: 28, letterSpacing: -0.5, margin: 0 }}>Platform Matrix Org</h1>
+            <p className="text-sm mt-1" style={{ opacity: 0.7 }}>Q2 2026 · Draft pending Ben alignment</p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Badge variant="filled" color={saved ? "green" : saving ? "yellow" : "gray"} size="sm" radius="xl" style={{ background: saved ? "rgba(34,197,94,0.3)" : saving ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.15)", color: "white" }}>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium text-white",
+              saved ? "bg-green-500/30" : saving ? "bg-yellow-500/30" : "bg-white/15"
+            )}>
               {saved ? "✓ Saved" : saving ? "Saving..." : "Auto-save"}
-            </Badge>
-            <Button variant="white" size="compact-xs" radius="xl" leftSection={<IconDownload size={12} />} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white" }}
-              onClick={() => { navigator.clipboard.writeText(JSON.stringify(org, null, 2)).then(() => alert("Copied!")); }}>Export</Button>
-            <Button variant="white" size="compact-xs" radius="xl" style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.7)" }}
-              onClick={() => { if (window.confirm("Reset to defaults?")) setOrg(initData); }}>Reset</Button>
+            </span>
+            <button
+              onClick={() => { navigator.clipboard.writeText(JSON.stringify(org, null, 2)).then(() => alert("Copied!")); }}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-white transition-colors"
+              style={{ background: "rgba(255,255,255,0.15)" }}
+            >
+              <IconDownload size={12} />
+              Export
+            </button>
+            <button
+              onClick={() => { if (window.confirm("Reset to defaults?")) setOrg(initData); }}
+              className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+              style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
+            >
+              Reset
+            </button>
           </div>
         </div>
       </div>
 
       {/* ── View Toggle ── */}
-      <Center mb="lg">
-        <SegmentedControl value={view} onChange={setView} radius="xl" size="sm" color="indigo"
-          data={[{ label: "👥  People Matrix", value: "people" }, { label: "⚙️  Layer Architecture", value: "layers" }]}
-          styles={{ root: { background: "white", border: "1px solid #e8ecf1", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" } }} />
-      </Center>
+      <div className="flex justify-center mb-4">
+        <div className="inline-flex rounded-full bg-white border border-gray-100 shadow-sm">
+          <TabGroup value={view} onValueChange={setView} size="sm">
+            <TabGroupItem value="people">👥 People Matrix</TabGroupItem>
+            <TabGroupItem value="layers">⚙️ Layer Architecture</TabGroupItem>
+          </TabGroup>
+        </div>
+      </div>
 
       {view === "layers" ? <LayerView layers={org.layers} /> : (<>
         {/* ── Stage Filter ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          <Text fz={11} fw={600} c="dimmed" tt="uppercase" lts={1} mr={4}>Stage:</Text>
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mr-1">Stage:</span>
           {(["all","stabilize","modernize","productize"] as const).map(s => (
             <button key={s} className={`filter-pill ${stageFilter === s ? "active" : ""}`}
               style={stageFilter === s ? { background: STAGES[s].color, borderColor: STAGES[s].color, color: "white", ["--accent" as any]: STAGES[s].color } : {}}
@@ -411,7 +486,7 @@ export default function MatrixOrg() {
             <thead>
               <tr>
                 <th style={{ width: 140 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div className="flex items-center justify-between">
                     <span>ELT</span>
                     <button className="add-btn" onClick={addExecutive} title="Add executive" style={{ width: 22, height: 22, fontSize: 13 }}>+</button>
                   </div>
@@ -421,18 +496,43 @@ export default function MatrixOrg() {
                   const tc = typeConfig[p.type] || typeConfig.church;
                   return (
                     <th key={p.id} className={tc.headerClass} style={{ textAlign: "center", minWidth: 160 }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 6 }}>
-                        <ActionIcon size={16} variant="transparent" color="gray" disabled={pi === 0} onClick={() => moveProduct(p.id, -1)}><IconArrowLeft size={10} /></ActionIcon>
-                        <Badge size="xs" variant="light" color={tc.mantine} radius="sm">{tc.label}</Badge>
-                        <ActionIcon size={16} variant="transparent" color="gray" disabled={pi === org.products.length - 1} onClick={() => moveProduct(p.id, 1)}><IconArrowRight size={10} /></ActionIcon>
-                        <ActionIcon size={16} variant="transparent" color="red" onClick={() => removeProduct(p.id)}><IconTrash size={10} /></ActionIcon>
+                      <div className="flex items-center justify-center gap-1 mb-1.5">
+                        <IconButton
+                          size="sm"
+                          variant="ghost"
+                          icon={<IconArrowLeft size={10} />}
+                          aria-label="Move left"
+                          disabled={pi === 0}
+                          onClick={() => moveProduct(p.id, -1)}
+                          className="size-5 min-h-0"
+                        />
+                        <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold", tc.bgClass, tc.textClass)}>{tc.label}</span>
+                        <IconButton
+                          size="sm"
+                          variant="ghost"
+                          icon={<IconArrowRight size={10} />}
+                          aria-label="Move right"
+                          disabled={pi === org.products.length - 1}
+                          onClick={() => moveProduct(p.id, 1)}
+                          className="size-5 min-h-0"
+                        />
+                        <IconButton
+                          size="sm"
+                          variant="destructive"
+                          icon={<IconTrash size={10} />}
+                          aria-label="Remove product"
+                          onClick={() => removeProduct(p.id)}
+                          className="size-5 min-h-0"
+                        />
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: "#1a1d23", textTransform: "none", letterSpacing: 0 }}>
                         <ET value={p.name} onChange={(v: string) => updateProductName(p.id, v)} style={{ fontWeight: 700, fontSize: 15 }} />
                       </div>
-                      <div style={{ background: "white", borderRadius: 8, padding: "4px 10px", display: "inline-block", marginTop: 6, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: tc.badge }}><ET value={p.productLead} onChange={(v: string) => updateProductLead(p.id, v)} style={{ fontWeight: 600, color: tc.badge }} /></div>
-                        <div style={{ fontSize: 9, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 1 }}>Product Lead</div>
+                      <div className="inline-block mt-1.5 rounded-lg px-2.5 py-1 bg-white shadow-sm">
+                        <div style={{ fontSize: 12, fontWeight: 600, color: tc.badgeColor }}>
+                          <ET value={p.productLead} onChange={(v: string) => updateProductLead(p.id, v)} style={{ fontWeight: 600, color: tc.badgeColor }} />
+                        </div>
+                        <div className="text-[9px] text-gray-400 uppercase tracking-wide">Product Lead</div>
                       </div>
                     </th>
                   );
@@ -452,52 +552,62 @@ export default function MatrixOrg() {
                       seg?.exec ? (
                         <td rowSpan={seg.rowSpan} className="exec-cell" style={{ verticalAlign: "middle", cursor: "pointer" }}
                           onClick={() => toggleCollapse(seg.exec.id)}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                          <div className="flex items-center gap-1 mb-1">
                             {collapsedExecs.has(seg.exec.id) ? <IconChevronRight size={14} color="#6b7280" /> : <IconChevronDown size={14} color="#6b7280" />}
                             <span style={{ fontWeight: 700, fontSize: 13, color: seg.exec.accent }}>
                               <ET value={seg.exec.name} onChange={(v: string) => updateExecName(seg.exec.id, v)} style={{ fontWeight: 700, color: seg.exec.accent }} />
                             </span>
                           </div>
-                          <div style={{ fontSize: 11, color: "#9ca3af", paddingLeft: 18 }}>
+                          <div className="text-[11px] text-gray-400 pl-[18px]">
                             <ET value={seg.exec.role} onChange={(v: string) => updateExecRole(seg.exec.id, v)} style={{ fontSize: 11, color: "#9ca3af" }} />
                           </div>
-                          <div style={{ display: "flex", gap: 4, paddingLeft: 18, marginTop: 8 }}>
-                            <Button size="compact-xs" variant="light" color="indigo" radius="sm" onClick={(e: any) => { e.stopPropagation(); setAssignOpen(seg.exec); }}>Assign</Button>
-                            <ActionIcon size={20} variant="light" color="red" radius="sm" onClick={(e: any) => { e.stopPropagation(); removeExecutive(seg.exec.id); }}><IconTrash size={11} /></ActionIcon>
+                          <div className="flex gap-1 pl-[18px] mt-2">
+                            <Button size="sm" variant="secondary" onClick={(e: any) => { e.stopPropagation(); setAssignOpen(seg.exec); }}>Assign</Button>
+                            <IconButton
+                              size="sm"
+                              variant="destructive"
+                              icon={<IconTrash size={11} />}
+                              aria-label="Remove executive"
+                              onClick={(e: any) => { e.stopPropagation(); removeExecutive(seg.exec.id); }}
+                            />
                           </div>
                         </td>
                       ) : (
                         <td className="exec-cell" style={{ verticalAlign: "middle" }}>
-                          <Text fz={10} c="dimmed" ta="center">—</Text>
+                          <p className="text-[10px] text-gray-400 text-center">—</p>
                         </td>
                       )
                     )}
 
                     {isCollapsed ? (
                       <td colSpan={org.products.length + 2} style={{ background: "#fafbfd" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div className="flex items-center gap-2">
                           <div className="layer-bar" style={{ background: layer.accent, height: 14, minHeight: 14 }} />
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280" }}>{layer.label}</span>
-                          <span style={{ fontSize: 10, color: "#9ca3af", fontFamily: "monospace" }}>{layer.sublabel}</span>
+                          <span className="text-xs font-semibold text-gray-500">{layer.label}</span>
+                          <span className="text-[10px] text-gray-400 font-mono">{layer.sublabel}</span>
                         </div>
                       </td>
                     ) : (
                       <>
                         <td>
-                          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                          <div className="flex gap-2.5 items-start">
                             <div className="layer-bar" style={{ background: layer.accent }} />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1d23", marginBottom: 1 }}>{layer.label}</div>
-                              <div style={{ fontSize: 10, color: "#9ca3af", fontFamily: "monospace", marginBottom: 8 }}>{layer.sublabel}</div>
-                              <div style={{ background: "#f8f9fc", borderRadius: 8, padding: "5px 10px", marginBottom: 6 }}>
-                                <div style={{ fontSize: 12, fontWeight: 600, color: layer.accent }}><ET value={layer.lead.name} onChange={(v: string) => updateLayerLead(layer.id, v)} style={{ fontWeight: 600, color: layer.accent }} /></div>
-                                <div style={{ fontSize: 9, color: "#9ca3af" }}>{layer.lead.role}</div>
+                            <div className="flex-1">
+                              <div className="text-[13px] font-bold text-gray-900 mb-0.5">{layer.label}</div>
+                              <div className="text-[10px] text-gray-400 font-mono mb-2">{layer.sublabel}</div>
+                              <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 mb-1.5">
+                                <div style={{ fontSize: 12, fontWeight: 600, color: layer.accent }}>
+                                  <ET value={layer.lead.name} onChange={(v: string) => updateLayerLead(layer.id, v)} style={{ fontWeight: 600, color: layer.accent }} />
+                                </div>
+                                <div className="text-[9px] text-gray-400">{layer.lead.role}</div>
                               </div>
-                              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                                {JDS[layer.id] && <Button size="compact-xs" variant="subtle" color="indigo" radius="sm" onClick={() => setJdOpen({ layerId: layer.id, layer })}>JD →</Button>}
-                                <ActionIcon size={18} variant="subtle" color="gray" disabled={li === 0} onClick={() => moveLayer(layer.id, -1)}><IconArrowUp size={11} /></ActionIcon>
-                                <ActionIcon size={18} variant="subtle" color="gray" disabled={li === org.layers.length - 1} onClick={() => moveLayer(layer.id, 1)}><IconArrowDown size={11} /></ActionIcon>
-                                <ActionIcon size={18} variant="subtle" color="red" onClick={() => removeLayer(layer.id)}><IconTrash size={11} /></ActionIcon>
+                              <div className="flex gap-1 items-center">
+                                {JDS[layer.id] && (
+                                  <Button size="sm" variant="ghost" onClick={() => setJdOpen({ layerId: layer.id, layer })}>JD →</Button>
+                                )}
+                                <IconButton size="sm" variant="ghost" icon={<IconArrowUp size={11} />} aria-label="Move up" disabled={li === 0} onClick={() => moveLayer(layer.id, -1)} />
+                                <IconButton size="sm" variant="ghost" icon={<IconArrowDown size={11} />} aria-label="Move down" disabled={li === org.layers.length - 1} onClick={() => moveLayer(layer.id, 1)} />
+                                <IconButton size="sm" variant="destructive" icon={<IconTrash size={11} />} aria-label="Remove layer" onClick={() => removeLayer(layer.id)} />
                               </div>
                             </div>
                           </div>
@@ -507,7 +617,7 @@ export default function MatrixOrg() {
                           const items = prod.cells[layer.id] || [];
                           return (
                             <td key={prod.id}>
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                              <div className="flex flex-wrap gap-0.5">
                                 {items.map((item: any, idx: number) => (
                                   <PersonChip key={idx} name={item.name} stage={item.stage}
                                     dimmed={stageFilter !== "all" && item.stage !== stageFilter && item.stage !== "all"}
@@ -532,20 +642,22 @@ export default function MatrixOrg() {
               <tr>
                 <td className="exec-cell" />
                 <td>
-                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div className="flex gap-2.5 items-start">
                     <div className="layer-bar" style={{ background: "#8b5cf6" }} />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1d23" }}>Product / Platform Innovation</div>
-                      <div style={{ fontSize: 10, color: "#8b5cf6", fontFamily: "monospace", marginBottom: 8 }}>Bleeding Edge R&D</div>
-                      <div style={{ background: "#f8f9fc", borderRadius: 8, padding: "5px 10px" }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#8b5cf6" }}><ET value={org.innovationLead} onChange={(v: string) => setOrg((o: any) => ({ ...o, innovationLead: v }))} style={{ fontWeight: 600, color: "#8b5cf6" }} /></div>
-                        <div style={{ fontSize: 9, color: "#9ca3af" }}>Innovation Lead</div>
+                      <div className="text-[13px] font-bold text-gray-900">Product / Platform Innovation</div>
+                      <div className="text-[10px] font-mono mb-2" style={{ color: "#8b5cf6" }}>Bleeding Edge R&D</div>
+                      <div className="rounded-lg bg-gray-50 px-2.5 py-1.5">
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#8b5cf6" }}>
+                          <ET value={org.innovationLead} onChange={(v: string) => setOrg((o: any) => ({ ...o, innovationLead: v }))} style={{ fontWeight: 600, color: "#8b5cf6" }} />
+                        </div>
+                        <div className="text-[9px] text-gray-400">Innovation Lead</div>
                       </div>
                     </div>
                   </div>
                 </td>
                 <td colSpan={org.products.length}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  <div className="flex flex-wrap gap-1">
                     {(org.innovation || []).map((name: string, idx: number) => (
                       <PersonChip key={idx} name={name} stage="all"
                         onRename={(v: string) => setOrg((o: any) => { const a = [...o.innovation]; a[idx] = v; return { ...o, innovation: a }; })}
@@ -561,7 +673,7 @@ export default function MatrixOrg() {
               {/* Add row */}
               <tr>
                 <td colSpan={org.products.length + 3} style={{ background: "transparent", border: "none" }}>
-                  <Button variant="subtle" color="indigo" leftSection={<IconPlus size={14} />} onClick={() => setAddRowOpen(true)} radius="xl">Add Row</Button>
+                  <Button variant="ghost" size="sm" leadingIcon={<IconPlus size={14} />} onClick={() => setAddRowOpen(true)}>Add Row</Button>
                 </td>
               </tr>
             </tbody>
@@ -569,25 +681,25 @@ export default function MatrixOrg() {
         </div>
 
         {/* Legend */}
-        <div style={{ display: "flex", gap: 24, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Text fz={10} fw={700} c="dimmed" tt="uppercase">Columns:</Text>
-            <Badge variant="light" color="blue" size="xs" radius="sm">Church</Badge>
-            <Badge variant="light" color="yellow" size="xs" radius="sm">360°</Badge>
-            <Badge variant="light" color="green" size="xs" radius="sm">Gloo</Badge>
+        <div className="flex gap-6 mt-4 flex-wrap items-center">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-gray-400 uppercase">Columns:</span>
+            <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700">Church</span>
+            <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-yellow-100 text-yellow-700">360°</span>
+            <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700">Gloo</span>
           </div>
-          <div style={{ width: 1, height: 16, background: "#e8ecf1" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Text fz={10} fw={700} c="dimmed" tt="uppercase">Stages:</Text>
+          <div className="w-px h-4 bg-gray-200" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-gray-400 uppercase">Stages:</span>
             {(["stabilize","modernize","productize","all"] as const).map(s => (
-              <div key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div key={s} className="flex items-center gap-1">
                 <div className={`stage-dot ${s}`} />
-                <Text fz={10} c="dimmed">{STAGES[s].label}</Text>
+                <span className="text-[10px] text-gray-400">{STAGES[s].label}</span>
               </div>
             ))}
           </div>
-          <div style={{ width: 1, height: 16, background: "#e8ecf1" }} />
-          <Text fz={10} c="dimmed">Click names to edit · Hover chips for controls · + to add roles</Text>
+          <div className="w-px h-4 bg-gray-200" />
+          <span className="text-[10px] text-gray-400">Click names to edit · Hover chips for controls · + to add roles</span>
         </div>
       </>)}
     </div>
@@ -600,42 +712,94 @@ function AddColumnModal({ opened, onClose, onAdd }: any) {
   const [type, setType] = useState("church");
   const [lead, setLead] = useState("TBD");
   return (
-    <Modal opened={opened} onClose={onClose} title={<Text fw={600}>Add Column</Text>} radius="lg" overlayProps={{ backgroundOpacity: 0.3, blur: 4 }}>
-      <Stack>
-        <TextInput label="Product Name" value={name} onChange={e => setName(e.currentTarget.value)} radius="md" />
-        <div><Text fz="sm" fw={500} mb={4}>Type</Text><SegmentedControl value={type} onChange={setType} fullWidth radius="md" color="indigo" data={[{ label: "Church", value: "church" }, { label: "360°", value: "360" }, { label: "Gloo", value: "gloo" }]} /></div>
-        <TextInput label="Product Lead" value={lead} onChange={e => setLead(e.currentTarget.value)} radius="md" />
-        <Group justify="flex-end"><Button variant="default" onClick={onClose} radius="md">Cancel</Button><Button color="indigo" radius="md" onClick={() => { onAdd({ name: name.trim() || "New Product", type, productLead: lead.trim() || "TBD" }); setName("New Product"); setLead("TBD"); }}>Add</Button></Group>
-      </Stack>
+    <Modal opened={opened} onClose={onClose} title="Add Column" size="md">
+      <div className="flex flex-col gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+          <Input value={name} onChange={e => setName(e.target.value)} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-2">Type</p>
+          <div className="inline-flex w-full rounded-full bg-gray-100 p-0.5">
+            <TabGroup value={type} onValueChange={setType} size="sm" className="flex w-full">
+              <TabGroupItem value="church" className="flex-1">Church</TabGroupItem>
+              <TabGroupItem value="360" className="flex-1">360°</TabGroupItem>
+              <TabGroupItem value="gloo" className="flex-1">Gloo</TabGroupItem>
+            </TabGroup>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product Lead</label>
+          <Input value={lead} onChange={e => setLead(e.target.value)} />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => { onAdd({ name: name.trim() || "New Product", type, productLead: lead.trim() || "TBD" }); setName("New Product"); setLead("TBD"); }}>Add</Button>
+        </div>
+      </div>
     </Modal>
   );
 }
 
 function AddRowModal({ opened, onClose, onAdd }: any) {
-  const [label, setLabel] = useState("New Layer"); const [sublabel, setSublabel] = useState("Description");
-  const [leadName, setLeadName] = useState("TBD"); const [leadRole, setLeadRole] = useState("Layer Lead");
+  const [label, setLabel] = useState("New Layer");
+  const [sublabel, setSublabel] = useState("Description");
+  const [leadName, setLeadName] = useState("TBD");
+  const [leadRole, setLeadRole] = useState("Layer Lead");
   return (
-    <Modal opened={opened} onClose={onClose} title={<Text fw={600}>Add Row</Text>} radius="lg" overlayProps={{ backgroundOpacity: 0.3, blur: 4 }}>
-      <Stack>
-        <TextInput label="Layer Name" value={label} onChange={e => setLabel(e.currentTarget.value)} radius="md" />
-        <TextInput label="Description" value={sublabel} onChange={e => setSublabel(e.currentTarget.value)} radius="md" />
-        <TextInput label="Lead Name" value={leadName} onChange={e => setLeadName(e.currentTarget.value)} radius="md" />
-        <TextInput label="Lead Role" value={leadRole} onChange={e => setLeadRole(e.currentTarget.value)} radius="md" />
-        <Group justify="flex-end"><Button variant="default" onClick={onClose} radius="md">Cancel</Button><Button color="indigo" radius="md" onClick={() => { onAdd({ label: label.trim() || "New Layer", sublabel: sublabel.trim(), lead: { name: leadName.trim() || "TBD", role: leadRole.trim() || "Layer Lead" }, accent: "#6366f1" }); }}>Add</Button></Group>
-      </Stack>
+    <Modal opened={opened} onClose={onClose} title="Add Row" size="md">
+      <div className="flex flex-col gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Layer Name</label>
+          <Input value={label} onChange={e => setLabel(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <Input value={sublabel} onChange={e => setSublabel(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Lead Name</label>
+          <Input value={leadName} onChange={e => setLeadName(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Lead Role</label>
+          <Input value={leadRole} onChange={e => setLeadRole(e.target.value)} />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => { onAdd({ label: label.trim() || "New Layer", sublabel: sublabel.trim(), lead: { name: leadName.trim() || "TBD", role: leadRole.trim() || "Layer Lead" }, accent: "#6366f1" }); }}>Add</Button>
+        </div>
+      </div>
     </Modal>
   );
 }
 
 function AddRoleModal({ target, onClose, onAdd }: any) {
-  const [name, setName] = useState("New Member"); const [stage, setStage] = useState("stabilize");
+  const [name, setName] = useState("New Member");
+  const [stage, setStage] = useState("stabilize");
   return (
-    <Modal opened={!!target} onClose={onClose} title={<Text fw={600}>Add Role</Text>} radius="lg" overlayProps={{ backgroundOpacity: 0.3, blur: 4 }}>
-      <Stack>
-        <TextInput label="Name" value={name} onChange={e => setName(e.currentTarget.value)} radius="md" />
-        <div><Text fz="sm" fw={500} mb={4}>Stage</Text><SegmentedControl value={stage} onChange={setStage} fullWidth radius="md" color="indigo" data={[{ label: "Stabilize", value: "stabilize" }, { label: "Modernize", value: "modernize" }, { label: "Productize", value: "productize" }, { label: "All", value: "all" }]} /></div>
-        <Group justify="flex-end"><Button variant="default" onClick={onClose} radius="md">Cancel</Button><Button color="indigo" radius="md" onClick={() => { onAdd(name.trim() || "New Member", stage); setName("New Member"); setStage("stabilize"); }}>Add</Button></Group>
-      </Stack>
+    <Modal opened={!!target} onClose={onClose} title="Add Role" size="md">
+      <div className="flex flex-col gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <Input value={name} onChange={e => setName(e.target.value)} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-2">Stage</p>
+          <div className="inline-flex w-full rounded-full bg-gray-100 p-0.5">
+            <TabGroup value={stage} onValueChange={setStage} size="sm" className="flex w-full">
+              <TabGroupItem value="stabilize" className="flex-1">Stabilize</TabGroupItem>
+              <TabGroupItem value="modernize" className="flex-1">Modernize</TabGroupItem>
+              <TabGroupItem value="productize" className="flex-1">Productize</TabGroupItem>
+              <TabGroupItem value="all" className="flex-1">All</TabGroupItem>
+            </TabGroup>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => { onAdd(name.trim() || "New Member", stage); setName("New Member"); setStage("stabilize"); }}>Add</Button>
+        </div>
+      </div>
     </Modal>
   );
 }
