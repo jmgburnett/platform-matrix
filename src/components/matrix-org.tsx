@@ -1041,39 +1041,6 @@ export default function MatrixOrg() {
               });
             })()}
 
-            {/* innovation row */}
-            <tr>
-              <td style={{ borderRight:"1px solid #1e293b", borderBottom:"1px solid #1e293b", background:"#08080f" }} />
-              <td style={{ padding:"16px", borderRight:"1px solid #1e293b", borderBottom:"1px solid #1e293b", background:"#0f0a1a55", verticalAlign:"top" }}>
-                <div style={{ display:"flex", gap:"10px" }}>
-                  <div style={{ width:"3px", minHeight:"50px", background:"#7c3aed", borderRadius:"2px", flexShrink:0 }} />
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:"12px", fontWeight:"700", color:"#f1f5f9" }}>Product / Platform Innovation</div>
-                    <div style={{ fontSize:"9px", color:"#7c3aed", fontFamily:"Courier New, monospace", marginTop:"2px", marginBottom:"8px" }}>Bleeding Edge R&D</div>
-                    <div style={{ padding:"7px 10px", background:"#080e14", border:"1px solid #7c3aed33", borderRadius:"8px" }}>
-                      <ET value={org.innovationLead} onChange={updateInnovationLead} style={{ fontSize:"11px", fontWeight:"700", color:"#c084fc" }} />
-                      <div style={{ fontSize:"9px", color:"#94a3b8" }}>Innovation Lead</div>
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td colSpan={org.products.length} style={{ padding:"12px 10px", borderRight:"1px solid #1e293b", borderBottom:"1px solid #1e293b", background:"#0f0a1a", verticalAlign:"top" }}>
-                <div style={{ display:"flex", flexWrap:"wrap" }}>
-                  {org.innovation.map((name,idx)=>(
-                    <Chip key={idx} name={name} stage="all" accent="#7c3aed"
-                      onChange={v=>updateInnovation(idx,v)}
-                      onStageChange={()=>{}}
-                      onDelete={()=>setOrg(o=>({...o,innovation:o.innovation.filter((_,i)=>i!==idx)}))} />
-                  ))}
-                  <button onClick={()=>setOrg(o=>({...o,innovation:[...o.innovation,"New Member"]}))}
-                    style={{ background:"none", border:"1px dashed #7c3aed40", borderRadius:"6px", color:"#7c3aed80", cursor:"pointer", fontSize:"14px", width:"26px", height:"26px", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:"5px", transition:"all 0.15s", padding:0 }}
-                    onMouseEnter={e=>{e.currentTarget.style.borderColor="#7c3aed";e.currentTarget.style.color="#7c3aed";}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor="#7c3aed40";e.currentTarget.style.color="#7c3aed80";}}>+</button>
-                </div>
-              </td>
-              <td style={{ borderBottom:"1px solid #1e293b", background:"transparent" }} />
-            </tr>
-
             {/* add row */}
             <tr>
               <td colSpan={org.products.length + 3} style={{ padding:"12px 16px", background:"transparent" }}>
