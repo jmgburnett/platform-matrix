@@ -3,7 +3,7 @@
 import { useState } from "react";
 import MatrixOrg from "@/components/matrix-org";
 
-const PASSCODE = "Gloonity";
+const PASSCODE = "Manatee";
 
 export default function Home() {
   const [unlocked, setUnlocked] = useState(false);
