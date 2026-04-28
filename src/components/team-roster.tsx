@@ -7,7 +7,7 @@ import {
   MagnifyingGlass, ArrowLeft, CaretDown, CaretRight,
   User, Envelope, Phone, Note, Plus,
 } from "@phosphor-icons/react";
-import { JDS, JD_TITLES } from "@/lib/job-descriptions";
+import { JDS, JD_TITLES, findJDByTitle, emptyJD, type JobDescription } from "@/lib/job-descriptions";
 import "../app/globals.css";
 
 /* ─── TYPES ─── */
@@ -166,8 +166,236 @@ function extractPeople(org: any): Record<string, PersonFromMatrix> {
   return people;
 }
 
+/* ─── JD View Modal ─── */
+function JDModal({ jd, onClose, accent }: { jd: JobDescription; onClose: () => void; accent?: string }) {
+  const color = accent || "#06b6d4";
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
+      background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+    }} onClick={onClose}>
+      <div style={{
+        background: "#0f172a", border: "1px solid #1e293b", borderRadius: 16, padding: 32,
+        maxWidth: 640, width: "90%", maxHeight: "85vh", overflow: "auto", color: "#e2e8f0",
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ borderLeft: `4px solid ${color}`, paddingLeft: 16, marginBottom: 20 }}>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9", margin: 0 }}>{jd.title}</h3>
+          <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>Reports to {jd.reports || "—"}</p>
+        </div>
+        <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.6, marginBottom: 20 }}>{jd.what}</p>
+
+        <h4 style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color, marginBottom: 8 }}>Responsibilities</h4>
+        {jd.responsibilities.map((r, i) => (
+          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "start" }}>
+            <span style={{ color, fontSize: 10, marginTop: 4 }}>●</span>
+            <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.5, margin: 0 }}>{r}</p>
+          </div>
+        ))}
+
+        <div style={{ height: 1, background: "#1e293b", margin: "16px 0" }} />
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div>
+            <h4 style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#06b6d4", marginBottom: 8 }}>Looking For</h4>
+            {jd.looking.map((l, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4, alignItems: "start" }}>
+                <span style={{ color: "#06b6d4", fontSize: 8, marginTop: 5 }}>◆</span>
+                <p style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, margin: 0 }}>{l}</p>
+              </div>
+            ))}
+          </div>
+          <div>
+            <h4 style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#10b981", marginBottom: 8 }}>Success Looks Like</h4>
+            {jd.success.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4, alignItems: "start" }}>
+                <span style={{ color: "#10b981", fontSize: 8, marginTop: 5 }}>◆</span>
+                <p style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, margin: 0 }}>{s}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {jd.notThis && (
+          <div style={{ background: "#1a0a0a", border: "1px solid #7f1d1d40", borderRadius: 10, padding: "10px 14px", marginTop: 16 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Not This</p>
+            <p style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic", margin: 0 }}>{jd.notThis}</p>
+          </div>
+        )}
+
+        {jd.flourishing && (
+          <div style={{ background: "#0a1a1a", border: "1px solid #06b6d440", borderRadius: 10, padding: "10px 14px", marginTop: 10 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, color: "#06b6d4", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>On Human Flourishing</p>
+            <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>{jd.flourishing}</p>
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+          <button onClick={onClose} style={{
+            background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "8px 20px",
+            color: "#94a3b8", cursor: "pointer", fontSize: 12, fontFamily: "inherit",
+          }}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── JD Editor Modal ─── */
+function JDEditorModal({ initial, onSave, onClose }: {
+  initial?: JobDescription; onSave: (jd: JobDescription) => void; onClose: () => void;
+}) {
+  const [jd, setJd] = useState<JobDescription>(initial || emptyJD());
+  const [respInput, setRespInput] = useState("");
+  const [lookInput, setLookInput] = useState("");
+  const [successInput, setSuccessInput] = useState("");
+
+  const update = (field: keyof JobDescription, value: any) => setJd(prev => ({ ...prev, [field]: value }));
+
+  const inputStyle: React.CSSProperties = {
+    background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "8px 12px",
+    color: "#e2e8f0", fontSize: 13, fontFamily: "inherit", outline: "none", width: "100%",
+  };
+  const textareaStyle: React.CSSProperties = { ...inputStyle, minHeight: 80, resize: "vertical" };
+  const labelStyle: React.CSSProperties = {
+    fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b",
+    display: "block", marginBottom: 6,
+  };
+
+  const addToList = (field: "responsibilities" | "looking" | "success", value: string, setter: (v: string) => void) => {
+    const trimmed = value.trim();
+    if (trimmed) {
+      update(field, [...jd[field], trimmed]);
+      setter("");
+    }
+  };
+
+  const removeFromList = (field: "responsibilities" | "looking" | "success", idx: number) => {
+    update(field, jd[field].filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
+      background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+    }} onClick={onClose}>
+      <div style={{
+        background: "#0f172a", border: "1px solid #1e293b", borderRadius: 16, padding: 28,
+        maxWidth: 640, width: "90%", maxHeight: "85vh", overflow: "auto", color: "#e2e8f0",
+      }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#f1f5f9", margin: "0 0 20px" }}>
+          {initial ? "Edit Job Description" : "New Job Description"}
+        </h3>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={labelStyle}>Title</label>
+            <input value={jd.title} onChange={e => update("title", e.target.value)} placeholder="e.g. Platform Solution Engineer" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Reports To</label>
+            <input value={jd.reports} onChange={e => update("reports", e.target.value)} placeholder="Manager name" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>What This Role Is</label>
+            <textarea value={jd.what} onChange={e => update("what", e.target.value)} placeholder="Describe the role..." style={textareaStyle} />
+          </div>
+
+          {/* Responsibilities */}
+          <div>
+            <label style={labelStyle}>Responsibilities</label>
+            {jd.responsibilities.map((r, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4, alignItems: "center" }}>
+                <span style={{ fontSize: 10, color: "#06b6d4" }}>●</span>
+                <span style={{ fontSize: 12, color: "#94a3b8", flex: 1 }}>{r}</span>
+                <button onClick={() => removeFromList("responsibilities", i)}
+                  style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 14 }}>×</button>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 6 }}>
+              <input value={respInput} onChange={e => setRespInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addToList("responsibilities", respInput, setRespInput); } }}
+                placeholder="Add responsibility..." style={{ ...inputStyle, fontSize: 12 }} />
+              <button onClick={() => addToList("responsibilities", respInput, setRespInput)}
+                style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "0 12px", color: "#64748b", cursor: "pointer", fontSize: 16 }}>+</button>
+            </div>
+          </div>
+
+          {/* Looking For */}
+          <div>
+            <label style={labelStyle}>Looking For</label>
+            {jd.looking.map((l, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4, alignItems: "center" }}>
+                <span style={{ fontSize: 8, color: "#06b6d4" }}>◆</span>
+                <span style={{ fontSize: 12, color: "#94a3b8", flex: 1 }}>{l}</span>
+                <button onClick={() => removeFromList("looking", i)}
+                  style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 14 }}>×</button>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 6 }}>
+              <input value={lookInput} onChange={e => setLookInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addToList("looking", lookInput, setLookInput); } }}
+                placeholder="Add requirement..." style={{ ...inputStyle, fontSize: 12 }} />
+              <button onClick={() => addToList("looking", lookInput, setLookInput)}
+                style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "0 12px", color: "#64748b", cursor: "pointer", fontSize: 16 }}>+</button>
+            </div>
+          </div>
+
+          {/* Success Looks Like */}
+          <div>
+            <label style={labelStyle}>Success Looks Like</label>
+            {jd.success.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4, alignItems: "center" }}>
+                <span style={{ fontSize: 8, color: "#10b981" }}>◆</span>
+                <span style={{ fontSize: 12, color: "#94a3b8", flex: 1 }}>{s}</span>
+                <button onClick={() => removeFromList("success", i)}
+                  style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 14 }}>×</button>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 6 }}>
+              <input value={successInput} onChange={e => setSuccessInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addToList("success", successInput, setSuccessInput); } }}
+                placeholder="Add success metric..." style={{ ...inputStyle, fontSize: 12 }} />
+              <button onClick={() => addToList("success", successInput, setSuccessInput)}
+                style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "0 12px", color: "#64748b", cursor: "pointer", fontSize: 16 }}>+</button>
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Not This</label>
+            <textarea value={jd.notThis} onChange={e => update("notThis", e.target.value)} placeholder="What this role is NOT..." style={{ ...textareaStyle, minHeight: 50 }} />
+          </div>
+          <div>
+            <label style={labelStyle}>On Human Flourishing</label>
+            <textarea value={jd.flourishing} onChange={e => update("flourishing", e.target.value)} placeholder="The deeper purpose..." style={{ ...textareaStyle, minHeight: 50 }} />
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+          <button onClick={onClose} style={{
+            background: "none", border: "1px solid #334155", borderRadius: 8, padding: "8px 18px",
+            color: "#64748b", cursor: "pointer", fontSize: 12, fontFamily: "inherit",
+          }}>Cancel</button>
+          <button onClick={() => { if (jd.title.trim()) onSave(jd); }}
+            disabled={!jd.title.trim()}
+            style={{
+              background: jd.title.trim() ? "#1e3a5f" : "#1e293b",
+              border: `1px solid ${jd.title.trim() ? "#3b82f6" : "#334155"}`,
+              borderRadius: 8, padding: "8px 18px",
+              color: jd.title.trim() ? "#60a5fa" : "#475569",
+              cursor: jd.title.trim() ? "pointer" : "default",
+              fontSize: 12, fontFamily: "inherit", fontWeight: 600,
+            }}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Role Select with JD titles + custom ─── */
-function RoleSelect({ value, onChange, compact }: { value: string; onChange: (v: string) => void; compact?: boolean }) {
+function RoleSelect({ value, onChange, compact, customJDTitles, onViewJD, onCreateJD }: {
+  value: string; onChange: (v: string) => void; compact?: boolean;
+  customJDTitles?: string[]; onViewJD?: (title: string) => void; onCreateJD?: () => void;
+}) {
   const [customRoles, setCustomRoles] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
   const [newRole, setNewRole] = useState("");
@@ -187,7 +415,7 @@ function RoleSelect({ value, onChange, compact }: { value: string; onChange: (v:
     localStorage.setItem("roster-custom-roles", JSON.stringify(updated));
   };
 
-  const allRoles = [...JD_TITLES, ...customRoles];
+  const allRoles = [...JD_TITLES, ...(customJDTitles || []), ...customRoles.filter(r => !(customJDTitles || []).includes(r))];
 
   useEffect(() => { if (adding && addRef.current) addRef.current.focus(); }, [adding]);
 
@@ -218,20 +446,24 @@ function RoleSelect({ value, onChange, compact }: { value: string; onChange: (v:
     );
   }
 
+  // Check if current value has a JD (built-in or custom)
+  const hasJD = value && (findJDByTitle(value, undefined) !== null || (customJDTitles || []).includes(value));
+
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ display: "flex", gap: 4, alignItems: "center", width: "100%" }}>
       <select
         value={allRoles.includes(value) ? value : "__other__"}
         onChange={e => {
           const v = e.target.value;
           if (v === "__add__") { setAdding(true); return; }
+          if (v === "__create_jd__") { onCreateJD?.(); return; }
           if (v === "__other__") return;
           onChange(v);
         }}
         style={{
           background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
           padding: compact ? "3px 8px" : "5px 8px", color: value ? "#cbd5e1" : "#64748b",
-          fontSize: compact ? 11 : 12, fontFamily: "inherit", outline: "none", width: "100%",
+          fontSize: compact ? 11 : 12, fontFamily: "inherit", outline: "none", flex: 1,
           cursor: "pointer", appearance: "auto",
         }}
       >
@@ -241,8 +473,23 @@ function RoleSelect({ value, onChange, compact }: { value: string; onChange: (v:
         {allRoles.map(r => (
           <option key={r} value={r}>{r}</option>
         ))}
-        <option value="__add__">＋ Add new role...</option>
+        <option value="__add__">＋ Add custom role...</option>
+        <option value="__create_jd__">📄 Create new JD...</option>
       </select>
+      {hasJD && onViewJD && (
+        <button onClick={() => onViewJD(value)}
+          title="View Job Description"
+          style={{
+            background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+            padding: compact ? "2px 6px" : "4px 8px", color: "#06b6d4", cursor: "pointer",
+            fontSize: compact ? 10 : 11, fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#06b6d4"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#334155"; }}>
+          JD
+        </button>
+      )}
     </div>
   );
 }
@@ -484,6 +731,10 @@ export default function TeamRoster() {
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
   const [filterLayer, setFilterLayer] = useState("all");
   const [filterProduct, setFilterProduct] = useState("all");
+  const [viewJD, setViewJD] = useState<JobDescription | null>(null);
+  const [editJD, setEditJD] = useState<boolean>(false);
+  const [editJDInitial, setEditJDInitial] = useState<JobDescription | undefined>(undefined);
+  const [customJDs, setCustomJDs] = useState<Record<string, JobDescription>>({});
 
   const convexOrg = useQuery(api.orgData.get, { key: "default" });
   const convexRoster = useQuery(api.rosterData.get, { key: "default" });
@@ -500,30 +751,56 @@ export default function TeamRoster() {
     try { return JSON.parse(convexOrg.data); } catch { return null; }
   }, [convexOrg, orgLocal]);
 
-  // Load roster metadata
+  // Load roster metadata + custom JDs
   useEffect(() => {
     if (loaded) return;
     if (convexRoster === undefined) return;
     if (convexRoster?.data) {
-      try { setRosterMeta(JSON.parse(convexRoster.data)); } catch {}
+      try {
+        const parsed = JSON.parse(convexRoster.data);
+        if (parsed._customJDs) {
+          setCustomJDs(parsed._customJDs);
+          delete parsed._customJDs;
+        }
+        setRosterMeta(parsed);
+      } catch {}
     }
     setLoaded(true);
   }, [convexRoster, loaded]);
 
-  // Auto-save roster metadata
+  // Auto-save roster metadata + custom JDs
   useEffect(() => {
     if (!loaded) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       setSaving(true);
-      saveRoster({ key: "default", data: JSON.stringify(rosterMeta) })
+      const dataToSave = { ...rosterMeta, _customJDs: customJDs };
+      saveRoster({ key: "default", data: JSON.stringify(dataToSave) })
         .then(() => { setSaved(true); setSaving(false); setTimeout(() => setSaved(false), 2000); })
         .catch(() => setSaving(false));
     }, 800);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [rosterMeta, loaded, saveRoster]);
+  }, [rosterMeta, customJDs, loaded, saveRoster]);
 
   const people = useMemo(() => org ? extractPeople(org) : {}, [org]);
+
+  const customJDTitles = useMemo(() => Object.values(customJDs).map(jd => jd.title), [customJDs]);
+
+  const handleViewJD = (title: string) => {
+    const found = findJDByTitle(title, customJDs);
+    if (found) setViewJD(found.jd);
+  };
+
+  const handleCreateJD = () => {
+    setEditJDInitial(undefined);
+    setEditJD(true);
+  };
+
+  const handleSaveJD = (jd: JobDescription) => {
+    const key = "custom_" + jd.title.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    setCustomJDs(prev => ({ ...prev, [key]: jd }));
+    setEditJD(false);
+  };
 
   const getMeta = (name: string): RosterMeta => rosterMeta[name] || { role: "", capabilities: [], email: "", phone: "", notes: "" };
   const updateMeta = (name: string, updates: Partial<RosterMeta>) => {
@@ -636,6 +913,10 @@ export default function TeamRoster() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#08080f", color: "#e2e8f0", padding: "24px 32px" }}>
+      {/* JD Modals */}
+      {viewJD && <JDModal jd={viewJD} onClose={() => setViewJD(null)} />}
+      {editJD && <JDEditorModal initial={editJDInitial} onSave={handleSaveJD} onClose={() => setEditJD(false)} />}
+
       {/* Header */}
       <div style={{
         background: "linear-gradient(135deg, #0f172a, #1e1b4b, #0f172a)",
@@ -764,7 +1045,8 @@ export default function TeamRoster() {
 
                 {/* Role */}
                 <div style={{ display: "flex", alignItems: "center", minWidth: 140 }} onClick={e => e.stopPropagation()}>
-                  <RoleSelect value={meta.role} onChange={v => updateMeta(person.name, { role: v })} compact />
+                  <RoleSelect value={meta.role} onChange={v => updateMeta(person.name, { role: v })} compact
+                    customJDTitles={customJDTitles} onViewJD={handleViewJD} onCreateJD={handleCreateJD} />
                 </div>
 
                 {/* Capabilities */}
@@ -820,7 +1102,8 @@ export default function TeamRoster() {
                         <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 6 }}>
                           Role / Title
                         </label>
-                        <RoleSelect value={meta.role} onChange={v => updateMeta(person.name, { role: v })} />
+                        <RoleSelect value={meta.role} onChange={v => updateMeta(person.name, { role: v })}
+                          customJDTitles={customJDTitles} onViewJD={handleViewJD} onCreateJD={handleCreateJD} />
                       </div>
                       <div>
                         <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 6 }}>

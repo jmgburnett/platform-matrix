@@ -71,3 +71,32 @@ export const JDS: Record<string, JobDescription> = {
 
 /* Extract just the titles for dropdown use */
 export const JD_TITLES = Object.values(JDS).map(jd => jd.title);
+
+/* Find a JD by title */
+export function findJDByTitle(title: string, customJDs?: Record<string, JobDescription>): { key: string; jd: JobDescription } | null {
+  // Check built-in JDs
+  for (const [key, jd] of Object.entries(JDS)) {
+    if (jd.title === title) return { key, jd };
+  }
+  // Check custom JDs
+  if (customJDs) {
+    for (const [key, jd] of Object.entries(customJDs)) {
+      if (jd.title === title) return { key, jd };
+    }
+  }
+  return null;
+}
+
+/* Empty JD template */
+export function emptyJD(): JobDescription {
+  return {
+    title: "",
+    reports: "",
+    what: "",
+    responsibilities: [],
+    notThis: "",
+    looking: [],
+    success: [],
+    flourishing: "",
+  };
+}
