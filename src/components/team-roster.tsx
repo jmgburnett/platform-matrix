@@ -738,6 +738,8 @@ export default function TeamRoster() {
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
   const [filterLayer, setFilterLayer] = useState("all");
   const [filterProduct, setFilterProduct] = useState("all");
+  const [showAddPerson, setShowAddPerson] = useState(false);
+  const [newPersonName, setNewPersonName] = useState("");
   const [viewJD, setViewJD] = useState<JobDescription | null>(null);
   const [viewJDKey, setViewJDKey] = useState<string | null>(null);
   const [editJD, setEditJD] = useState<boolean>(false);
@@ -825,6 +827,15 @@ export default function TeamRoster() {
     setCustomJDs(prev => ({ ...prev, [key]: jd }));
     setEditJD(false);
     setEditJDKey(null);
+  };
+
+  const addPerson = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || rosterMeta[trimmed]) return;
+    setRosterMeta(prev => ({ ...prev, [trimmed]: { role: "", capabilities: [], email: "", phone: "", notes: "", status: "" } }));
+    setNewPersonName("");
+    setShowAddPerson(false);
+    setExpandedPerson(trimmed);
   };
 
   const getMeta = (name: string): RosterMeta => rosterMeta[name] || { role: "", capabilities: [], email: "", phone: "", notes: "", status: "" };
@@ -1111,6 +1122,40 @@ export default function TeamRoster() {
   return (
     <div style={{ minHeight: "100vh", background: "#08080f", color: "#e2e8f0", padding: "24px 32px" }}>
       {/* JD Modals */}
+      {showAddPerson && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+        }} onClick={() => setShowAddPerson(false)}>
+          <form onSubmit={e => { e.preventDefault(); addPerson(newPersonName); }} onClick={e => e.stopPropagation()} style={{
+            background: "#0f172a", border: "1px solid #1e293b", borderRadius: 16, padding: 28,
+            maxWidth: 400, width: "90%", color: "#e2e8f0",
+          }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#f1f5f9", margin: "0 0 16px" }}>Add Person</h3>
+            <input value={newPersonName} onChange={e => setNewPersonName(e.target.value)} autoFocus
+              placeholder="Full name..."
+              style={{
+                width: "100%", background: "#1e293b", border: "1px solid #334155", borderRadius: 8,
+                padding: "10px 14px", color: "#e2e8f0", fontSize: 14, fontFamily: "inherit", outline: "none",
+                boxSizing: "border-box",
+              }} />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+              <button type="button" onClick={() => setShowAddPerson(false)} style={{
+                background: "none", border: "1px solid #334155", borderRadius: 8, padding: "8px 18px",
+                color: "#64748b", cursor: "pointer", fontSize: 12, fontFamily: "inherit",
+              }}>Cancel</button>
+              <button type="submit" disabled={!newPersonName.trim()} style={{
+                background: newPersonName.trim() ? "#064e3b" : "#1e293b",
+                border: `1px solid ${newPersonName.trim() ? "#10b981" : "#334155"}`,
+                borderRadius: 8, padding: "8px 18px",
+                color: newPersonName.trim() ? "#10b981" : "#475569",
+                cursor: newPersonName.trim() ? "pointer" : "default",
+                fontSize: 12, fontFamily: "inherit", fontWeight: 600,
+              }}>Add</button>
+            </div>
+          </form>
+        </div>
+      )}
       {viewJD && <JDModal jd={viewJD} onClose={() => { setViewJD(null); setViewJDKey(null); }} onEdit={handleEditJDFromView} />}
       {editJD && <JDEditorModal initial={editJDInitial} onSave={handleSaveJD} onClose={() => setEditJD(false)} />}
 
@@ -1137,6 +1182,13 @@ export default function TeamRoster() {
             }}>
               {saved ? "✓ Saved" : saving ? "Saving..." : "Auto-save"}
             </span>
+            <button onClick={() => setShowAddPerson(true)} style={{
+              display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 20, padding: "6px 14px",
+              fontSize: 12, fontWeight: 600, color: "#10b981", background: "rgba(16,185,129,0.1)",
+              border: "1px solid rgba(16,185,129,0.2)", cursor: "pointer", transition: "all 0.15s",
+            }}>
+              + Add Person
+            </button>
             <a href="/" style={{
               display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 20, padding: "6px 14px",
               fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)",
