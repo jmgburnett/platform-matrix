@@ -5,8 +5,9 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
   MagnifyingGlass, ArrowLeft, CaretDown, CaretRight,
-  User, Envelope, Phone, Note,
+  User, Envelope, Phone, Note, Plus,
 } from "@phosphor-icons/react";
+import { JDS, JD_TITLES } from "@/lib/job-descriptions";
 import "../app/globals.css";
 
 /* ─── TYPES ─── */
@@ -163,6 +164,224 @@ function extractPeople(org: any): Record<string, PersonFromMatrix> {
   });
 
   return people;
+}
+
+/* ─── Role Select with JD titles + custom ─── */
+function RoleSelect({ value, onChange, compact }: { value: string; onChange: (v: string) => void; compact?: boolean }) {
+  const [customRoles, setCustomRoles] = useState<string[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [newRole, setNewRole] = useState("");
+  const addRef = useRef<HTMLInputElement>(null);
+
+  // Load custom roles from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("roster-custom-roles");
+      if (stored) setCustomRoles(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const saveCustomRole = (role: string) => {
+    const updated = [...customRoles, role];
+    setCustomRoles(updated);
+    localStorage.setItem("roster-custom-roles", JSON.stringify(updated));
+  };
+
+  const allRoles = [...JD_TITLES, ...customRoles];
+
+  useEffect(() => { if (adding && addRef.current) addRef.current.focus(); }, [adding]);
+
+  const handleAddSubmit = () => {
+    const trimmed = newRole.trim();
+    if (trimmed && !allRoles.includes(trimmed)) {
+      saveCustomRole(trimmed);
+      onChange(trimmed);
+    } else if (trimmed) {
+      onChange(trimmed);
+    }
+    setNewRole("");
+    setAdding(false);
+  };
+
+  if (adding) {
+    return (
+      <input ref={addRef} value={newRole} onChange={e => setNewRole(e.target.value)}
+        onBlur={handleAddSubmit}
+        onKeyDown={e => { if (e.key === "Enter") handleAddSubmit(); if (e.key === "Escape") { setNewRole(""); setAdding(false); } }}
+        placeholder="Type new role..."
+        style={{
+          background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+          padding: compact ? "3px 8px" : "5px 8px", color: "#e2e8f0",
+          fontSize: compact ? 11 : 12, fontFamily: "inherit", outline: "none", width: "100%",
+        }}
+      />
+    );
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <select
+        value={allRoles.includes(value) ? value : "__other__"}
+        onChange={e => {
+          const v = e.target.value;
+          if (v === "__add__") { setAdding(true); return; }
+          if (v === "__other__") return;
+          onChange(v);
+        }}
+        style={{
+          background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+          padding: compact ? "3px 8px" : "5px 8px", color: value ? "#cbd5e1" : "#64748b",
+          fontSize: compact ? 11 : 12, fontFamily: "inherit", outline: "none", width: "100%",
+          cursor: "pointer", appearance: "auto",
+        }}
+      >
+        <option value="__other__" disabled={!value}>
+          {value && !allRoles.includes(value) ? value : "Select role..."}
+        </option>
+        {allRoles.map(r => (
+          <option key={r} value={r}>{r}</option>
+        ))}
+        <option value="__add__">＋ Add new role...</option>
+      </select>
+    </div>
+  );
+}
+
+/* ─── Reports To Editor ─── */
+function ReportsToEditor({ personName, layerLeaders, executives, layers, org, onSaveOrg }: {
+  personName: string;
+  layerLeaders: { layerId: string; layerLabel: string; leaderName: string }[];
+  executives: { execName: string; execRole: string }[];
+  layers: { id: string; label: string }[];
+  org: any;
+  onSaveOrg: (updated: any) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [selLayer, setSelLayer] = useState("");
+
+  // Get all layers this person is NOT already assigned to (for adding)
+  const assignedLayerIds = new Set(layerLeaders.map(ll => ll.layerId));
+  const availableLayers = layers.filter(l => !assignedLayerIds.has(l.id));
+
+  // Assign person to a layer (add to all products that have that layer)
+  const assignToLayer = (layerId: string) => {
+    if (!org || !layerId) return;
+    // Add person to first product's layer cell if not already there
+    const updated = {
+      ...org,
+      products: org.products.map((p: any, idx: number) => {
+        if (idx !== 0) return p; // Add to first product
+        const cells = { ...p.cells };
+        const existing = cells[layerId] || [];
+        if (!existing.some((item: any) => item.name === personName)) {
+          cells[layerId] = [...existing, { name: personName, stage: "stabilize" }];
+        }
+        return { ...p, cells };
+      }),
+    };
+    onSaveOrg(updated);
+    setSelLayer("");
+    setAdding(false);
+  };
+
+  // Remove person from a layer across all products
+  const removeFromLayer = (layerId: string) => {
+    if (!org) return;
+    const updated = {
+      ...org,
+      products: org.products.map((p: any) => {
+        const cells = { ...p.cells };
+        if (cells[layerId]) {
+          cells[layerId] = cells[layerId].filter((item: any) => item.name !== personName);
+        }
+        return { ...p, cells };
+      }),
+    };
+    onSaveOrg(updated);
+  };
+
+  return (
+    <div>
+      <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 8 }}>
+        Reports To
+      </label>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {layerLeaders.map((ll, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "6px 10px", background: "#0f172a", borderRadius: 8,
+            border: "1px solid #1e293b",
+          }}>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>{ll.leaderName}</span>
+              <span style={{ fontSize: 10, color: "#64748b", marginLeft: 8 }}>{ll.layerLabel} Lead</span>
+            </div>
+            <button onClick={() => removeFromLayer(ll.layerId)}
+              style={{
+                background: "none", border: "none", color: "#475569", cursor: "pointer",
+                fontSize: 14, lineHeight: 1, padding: "0 2px", transition: "color 0.15s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#ef4444")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#475569")}
+              title="Remove from this layer">×</button>
+          </div>
+        ))}
+        {executives.map((ex, i) => (
+          <div key={`ex-${i}`} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "6px 10px", background: "#0f172a", borderRadius: 8,
+            border: "1px solid #7c3aed20",
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#c4b5fd" }}>{ex.execName}</span>
+            <span style={{ fontSize: 10, color: "#7c3aed" }}>{ex.execRole}</span>
+          </div>
+        ))}
+      </div>
+      {adding ? (
+        <div style={{
+          marginTop: 6, padding: 8, background: "#0f172a", borderRadius: 8,
+          border: "1px solid #334155", display: "flex", gap: 6,
+        }}>
+          <select value={selLayer} onChange={e => setSelLayer(e.target.value)}
+            style={{
+              flex: 1, background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+              padding: "5px 8px", color: "#cbd5e1", fontSize: 11, fontFamily: "inherit", outline: "none",
+            }}>
+            <option value="">Select layer...</option>
+            {availableLayers.map(l => (
+              <option key={l.id} value={l.id}>{l.label}</option>
+            ))}
+          </select>
+          <button onClick={() => assignToLayer(selLayer)}
+            disabled={!selLayer}
+            style={{
+              background: selLayer ? "#1e3a5f" : "#1e293b",
+              border: "1px solid " + (selLayer ? "#3b82f6" : "#334155"),
+              borderRadius: 6, padding: "4px 10px", color: selLayer ? "#60a5fa" : "#475569",
+              cursor: selLayer ? "pointer" : "default", fontSize: 11, fontWeight: 600, fontFamily: "inherit",
+            }}>Add</button>
+          <button onClick={() => setAdding(false)}
+            style={{
+              background: "none", border: "1px solid #334155", borderRadius: 6, padding: "4px 10px",
+              color: "#64748b", cursor: "pointer", fontSize: 11, fontFamily: "inherit",
+            }}>×</button>
+        </div>
+      ) : (
+        availableLayers.length > 0 && (
+          <button onClick={() => setAdding(true)}
+            style={{
+              marginTop: 6, background: "none", border: "1px dashed #334155", borderRadius: 8,
+              color: "#475569", cursor: "pointer", fontSize: 11, padding: "6px 12px",
+              transition: "all 0.15s", width: "100%", textAlign: "center",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#94a3b8"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#334155"; e.currentTarget.style.color = "#475569"; }}>
+            + Assign to Layer Lead
+          </button>
+        )
+      )}
+    </div>
+  );
 }
 
 /* ─── Add Assignment Control ─── */
@@ -544,9 +763,8 @@ export default function TeamRoster() {
                 </div>
 
                 {/* Role */}
-                <div style={{ display: "flex", alignItems: "center" }} onClick={e => e.stopPropagation()}>
-                  <ET value={meta.role} onChange={v => updateMeta(person.name, { role: v })}
-                    placeholder="Add role..." style={{ fontSize: 12, color: "#94a3b8" }} />
+                <div style={{ display: "flex", alignItems: "center", minWidth: 140 }} onClick={e => e.stopPropagation()}>
+                  <RoleSelect value={meta.role} onChange={v => updateMeta(person.name, { role: v })} compact />
                 </div>
 
                 {/* Capabilities */}
@@ -602,9 +820,7 @@ export default function TeamRoster() {
                         <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 6 }}>
                           Role / Title
                         </label>
-                        <ET value={meta.role} onChange={v => updateMeta(person.name, { role: v })}
-                          placeholder="e.g. Senior Platform Engineer"
-                          style={{ fontSize: 13, color: "#e2e8f0" }} />
+                        <RoleSelect value={meta.role} onChange={v => updateMeta(person.name, { role: v })} />
                       </div>
                       <div>
                         <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 6 }}>
@@ -712,33 +928,14 @@ export default function TeamRoster() {
                         />
                       </div>
 
-                      <div>
-                        <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 8 }}>
-                          Reports To
-                        </label>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          {person.layerLeaders.map((ll: any, i: number) => (
-                            <div key={i} style={{
-                              display: "flex", alignItems: "center", justifyContent: "space-between",
-                              padding: "6px 10px", background: "#0f172a", borderRadius: 8,
-                              border: "1px solid #1e293b",
-                            }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>{ll.leaderName}</span>
-                              <span style={{ fontSize: 10, color: "#64748b" }}>{ll.layerLabel} Lead</span>
-                            </div>
-                          ))}
-                          {person.executives.map((ex: any, i: number) => (
-                            <div key={`ex-${i}`} style={{
-                              display: "flex", alignItems: "center", justifyContent: "space-between",
-                              padding: "6px 10px", background: "#0f172a", borderRadius: 8,
-                              border: "1px solid #7c3aed20",
-                            }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: "#c4b5fd" }}>{ex.execName}</span>
-                              <span style={{ fontSize: 10, color: "#7c3aed" }}>{ex.execRole}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      <ReportsToEditor
+                        personName={person.name}
+                        layerLeaders={person.layerLeaders}
+                        executives={person.executives}
+                        layers={layers}
+                        org={org}
+                        onSaveOrg={saveOrgData}
+                      />
                     </div>
                   </div>
                 </div>
