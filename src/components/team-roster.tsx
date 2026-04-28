@@ -179,12 +179,17 @@ export default function TeamRoster() {
   const convexOrg = useQuery(api.orgData.get, { key: "default" });
   const convexRoster = useQuery(api.rosterData.get, { key: "default" });
   const saveRoster = useMutation(api.rosterData.save);
+  const saveOrg = useMutation(api.orgData.save);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const orgSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [orgLocal, setOrgLocal] = useState<any>(null);
 
   const org = useMemo(() => {
+    if (orgLocal) return orgLocal;
     if (!convexOrg?.data) return null;
     try { return JSON.parse(convexOrg.data); } catch { return null; }
-  }, [convexOrg]);
+  }, [convexOrg, orgLocal]);
 
   // Load roster metadata
   useEffect(() => {
@@ -214,6 +219,40 @@ export default function TeamRoster() {
   const getMeta = (name: string): RosterMeta => rosterMeta[name] || { role: "", capabilities: [], email: "", phone: "", notes: "" };
   const updateMeta = (name: string, updates: Partial<RosterMeta>) => {
     setRosterMeta(prev => ({ ...prev, [name]: { ...getMeta(name), ...updates } }));
+  };
+
+  // Rename a person across all product cells in the org data
+  const renamePerson = (oldName: string, newName: string) => {
+    if (!org || !newName || newName === oldName) return;
+    const updated = {
+      ...org,
+      products: org.products.map((p: any) => {
+        const newCells: any = {};
+        Object.entries(p.cells || {}).forEach(([layerId, items]: [string, any]) => {
+          newCells[layerId] = (items || []).map((item: any) =>
+            item.name === oldName ? { ...item, name: newName } : item
+          );
+        });
+        return { ...p, cells: newCells };
+      }),
+    };
+    setOrgLocal(updated);
+    // Also migrate roster metadata to new name
+    setRosterMeta(prev => {
+      const next = { ...prev };
+      if (next[oldName]) {
+        next[newName] = next[oldName];
+        delete next[oldName];
+      }
+      return next;
+    });
+    // Update expanded state
+    if (expandedPerson === oldName) setExpandedPerson(newName);
+    // Save org to Convex
+    if (orgSaveTimerRef.current) clearTimeout(orgSaveTimerRef.current);
+    orgSaveTimerRef.current = setTimeout(() => {
+      saveOrg({ key: "default", data: JSON.stringify(updated) });
+    }, 800);
   };
 
   // Get unique layers and products for filters
@@ -373,7 +412,9 @@ export default function TeamRoster() {
                   }}>
                     {person.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>{person.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }} onClick={e => e.stopPropagation()}>
+                    <ET value={person.name} onChange={v => renamePerson(person.name, v)} style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }} />
+                  </span>
                 </div>
 
                 {/* Role */}
