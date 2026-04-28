@@ -831,6 +831,33 @@ export default function TeamRoster() {
     setRosterMeta(prev => ({ ...prev, [name]: { ...getMeta(name), ...updates } }));
   };
 
+  // Remove person from roster (metadata + matrix assignments)
+  const removePerson = (personName: string) => {
+    // Remove from roster metadata
+    setRosterMeta(prev => {
+      const next = { ...prev };
+      delete next[personName];
+      return next;
+    });
+    // Remove from all matrix product cells
+    if (org) {
+      const updated = {
+        ...org,
+        products: org.products.map((p: any) => {
+          const newCells: any = { ...p.cells };
+          Object.keys(newCells).forEach(layerId => {
+            if (newCells[layerId]) {
+              newCells[layerId] = newCells[layerId].filter((item: any) => item.name !== personName);
+            }
+          });
+          return { ...p, cells: newCells };
+        }),
+      };
+      saveOrgData(updated);
+    }
+    if (expandedPerson === personName) setExpandedPerson(null);
+  };
+
   // When role changes, move person to the matching layer across their product assignments
   const updateRole = (personName: string, newRole: string) => {
     updateMeta(personName, { role: newRole });
@@ -1431,6 +1458,21 @@ export default function TeamRoster() {
                         ) : null;
                       })()}
                     </div>
+                  </div>
+
+                  {/* Remove person */}
+                  <div style={{ borderTop: "1px solid #1e293b", marginTop: 16, paddingTop: 12, display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() => { if (confirm(`Remove ${person.name} from roster?`)) removePerson(person.name); }}
+                      style={{
+                        background: "none", border: "1px solid #7f1d1d40", borderRadius: 8,
+                        padding: "6px 16px", color: "#ef4444", cursor: "pointer", fontSize: 11,
+                        fontFamily: "inherit", fontWeight: 500, transition: "all 0.15s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "#7f1d1d20"; e.currentTarget.style.borderColor = "#ef4444"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "#7f1d1d40"; }}>
+                      Remove from Roster
+                    </button>
                   </div>
                 </div>
               )}
