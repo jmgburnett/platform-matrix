@@ -725,6 +725,9 @@ export default function MatrixOrg() {
                       </div>
                       <div style={{ fontSize:"9px", color:"#94a3b8" }}>Product Lead</div>
                     </div>
+                    <div style={{ marginTop:"8px", fontSize:"10px", fontWeight:"600", color:"#475569" }}>
+                      {(() => { let total = 0; org.layers.forEach((l: any) => { total += (p.cells[l.id] || []).length; }); return total; })()}<span style={{ fontSize:"8px", color:"#334155", marginLeft:"3px" }}>resources</span>
+                    </div>
                   </th>
                 );
               })}
