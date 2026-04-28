@@ -165,6 +165,96 @@ function extractPeople(org: any): Record<string, PersonFromMatrix> {
   return people;
 }
 
+/* ─── Add Assignment Control ─── */
+function AddAssignmentControl({ personName, products, layers, currentAssignments, onAdd }: {
+  personName: string;
+  products: { id: string; name: string; type: string }[];
+  layers: { id: string; label: string }[];
+  currentAssignments: Assignment[];
+  onAdd: (name: string, prodId: string, layerId: string, stage: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [selProduct, setSelProduct] = useState("");
+  const [selLayer, setSelLayer] = useState("");
+  const [selStage, setSelStage] = useState("stabilize");
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      style={{
+        marginTop: 6, background: "none", border: "1px dashed #334155", borderRadius: 8,
+        color: "#475569", cursor: "pointer", fontSize: 11, padding: "6px 12px",
+        transition: "all 0.15s", width: "100%", textAlign: "center",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#94a3b8"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "#334155"; e.currentTarget.style.color = "#475569"; }}>
+      + Add Assignment
+    </button>
+  );
+
+  const handleAdd = () => {
+    if (selProduct && selLayer) {
+      onAdd(personName, selProduct, selLayer, selStage);
+      setSelProduct("");
+      setSelLayer("");
+      setSelStage("stabilize");
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div style={{
+      marginTop: 6, padding: 10, background: "#0f172a", borderRadius: 8,
+      border: "1px solid #334155", display: "flex", flexDirection: "column", gap: 8,
+    }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <select value={selProduct} onChange={e => setSelProduct(e.target.value)}
+          style={{
+            flex: 1, minWidth: 100, background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+            padding: "5px 8px", color: "#cbd5e1", fontSize: 11, fontFamily: "inherit", outline: "none",
+          }}>
+          <option value="">Customer...</option>
+          {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <select value={selLayer} onChange={e => setSelLayer(e.target.value)}
+          style={{
+            flex: 1, minWidth: 100, background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+            padding: "5px 8px", color: "#cbd5e1", fontSize: 11, fontFamily: "inherit", outline: "none",
+          }}>
+          <option value="">Layer...</option>
+          {layers.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+        </select>
+        <select value={selStage} onChange={e => setSelStage(e.target.value)}
+          style={{
+            width: 90, background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+            padding: "5px 8px", color: "#cbd5e1", fontSize: 11, fontFamily: "inherit", outline: "none",
+          }}>
+          <option value="stabilize">Stabilize</option>
+          <option value="modernize">Modernize</option>
+          <option value="productize">Productize</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+        <button onClick={() => setOpen(false)}
+          style={{
+            background: "none", border: "1px solid #334155", borderRadius: 6, padding: "4px 12px",
+            color: "#64748b", cursor: "pointer", fontSize: 11, fontFamily: "inherit",
+          }}>Cancel</button>
+        <button onClick={handleAdd}
+          disabled={!selProduct || !selLayer}
+          style={{
+            background: selProduct && selLayer ? "#1e3a5f" : "#1e293b",
+            border: "1px solid " + (selProduct && selLayer ? "#3b82f6" : "#334155"),
+            borderRadius: 6, padding: "4px 12px",
+            color: selProduct && selLayer ? "#60a5fa" : "#475569",
+            cursor: selProduct && selLayer ? "pointer" : "default",
+            fontSize: 11, fontFamily: "inherit", fontWeight: 600,
+          }}>Add</button>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════ MAIN ═══════════════ */
 export default function TeamRoster() {
   const [rosterMeta, setRosterMeta] = useState<Record<string, RosterMeta>>({});
@@ -221,6 +311,48 @@ export default function TeamRoster() {
     setRosterMeta(prev => ({ ...prev, [name]: { ...getMeta(name), ...updates } }));
   };
 
+  // Save org helper
+  const saveOrgData = (updated: any) => {
+    setOrgLocal(updated);
+    if (orgSaveTimerRef.current) clearTimeout(orgSaveTimerRef.current);
+    orgSaveTimerRef.current = setTimeout(() => {
+      saveOrg({ key: "default", data: JSON.stringify(updated) });
+    }, 800);
+  };
+
+  // Remove a person from a specific product+layer cell
+  const removeAssignment = (personName: string, productId: string, layerId: string) => {
+    if (!org) return;
+    const updated = {
+      ...org,
+      products: org.products.map((p: any) => {
+        if (p.id !== productId) return p;
+        const newCells: any = { ...p.cells };
+        newCells[layerId] = (newCells[layerId] || []).filter((item: any) => item.name !== personName);
+        return { ...p, cells: newCells };
+      }),
+    };
+    saveOrgData(updated);
+  };
+
+  // Add a person to a product+layer cell
+  const addAssignment = (personName: string, productId: string, layerId: string, stage: string = "stabilize") => {
+    if (!org) return;
+    // Check if already assigned
+    const prod = org.products.find((p: any) => p.id === productId);
+    if (prod?.cells?.[layerId]?.some((item: any) => item.name === personName)) return;
+    const updated = {
+      ...org,
+      products: org.products.map((p: any) => {
+        if (p.id !== productId) return p;
+        const newCells: any = { ...p.cells };
+        newCells[layerId] = [...(newCells[layerId] || []), { name: personName, stage }];
+        return { ...p, cells: newCells };
+      }),
+    };
+    saveOrgData(updated);
+  };
+
   // Rename a person across all product cells in the org data
   const renamePerson = (oldName: string, newName: string) => {
     if (!org || !newName || newName === oldName) return;
@@ -236,7 +368,7 @@ export default function TeamRoster() {
         return { ...p, cells: newCells };
       }),
     };
-    setOrgLocal(updated);
+    saveOrgData(updated);
     // Also migrate roster metadata to new name
     setRosterMeta(prev => {
       const next = { ...prev };
@@ -246,13 +378,7 @@ export default function TeamRoster() {
       }
       return next;
     });
-    // Update expanded state
     if (expandedPerson === oldName) setExpandedPerson(newName);
-    // Save org to Convex
-    if (orgSaveTimerRef.current) clearTimeout(orgSaveTimerRef.current);
-    orgSaveTimerRef.current = setTimeout(() => {
-      saveOrg({ key: "default", data: JSON.stringify(updated) });
-    }, 800);
   };
 
   // Get unique layers and products for filters
@@ -556,16 +682,34 @@ export default function TeamRoster() {
                                 }}>{a.productName}</span>
                                 <span style={{ fontSize: 11, color: "#64748b" }}>→ {a.layerLabel}</span>
                               </div>
-                              <span style={{
-                                fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
-                                background: STAGES[a.stage]?.color + "20",
-                                color: STAGES[a.stage]?.color || "#94a3b8",
-                              }}>
-                                {STAGES[a.stage]?.label || a.stage}
-                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span style={{
+                                  fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
+                                  background: STAGES[a.stage]?.color + "20",
+                                  color: STAGES[a.stage]?.color || "#94a3b8",
+                                }}>
+                                  {STAGES[a.stage]?.label || a.stage}
+                                </span>
+                                <button onClick={() => removeAssignment(person.name, a.productId, a.layerId)}
+                                  style={{
+                                    background: "none", border: "none", color: "#475569", cursor: "pointer",
+                                    fontSize: 14, lineHeight: 1, padding: "0 2px", transition: "color 0.15s",
+                                  }}
+                                  onMouseEnter={e => (e.currentTarget.style.color = "#ef4444")}
+                                  onMouseLeave={e => (e.currentTarget.style.color = "#475569")}
+                                  title="Remove assignment">×</button>
+                              </div>
                             </div>
                           ))}
                         </div>
+                        {/* Add assignment */}
+                        <AddAssignmentControl
+                          personName={person.name}
+                          products={products}
+                          layers={layers}
+                          currentAssignments={person.assignments}
+                          onAdd={addAssignment}
+                        />
                       </div>
 
                       <div>
