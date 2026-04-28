@@ -855,6 +855,23 @@ export default function TeamRoster() {
     saveOrgData(updated);
   };
 
+  // Change stage for a person in a specific product+layer cell
+  const changeStage = (personName: string, productId: string, layerId: string, newStage: string) => {
+    if (!org) return;
+    const updated = {
+      ...org,
+      products: org.products.map((p: any) => {
+        if (p.id !== productId) return p;
+        const newCells: any = { ...p.cells };
+        newCells[layerId] = (newCells[layerId] || []).map((item: any) =>
+          item.name === personName ? { ...item, stage: newStage } : item
+        );
+        return { ...p, cells: newCells };
+      }),
+    };
+    saveOrgData(updated);
+  };
+
   // Add a person to a product+layer cell
   const addAssignment = (personName: string, productId: string, layerId: string, stage: string = "stabilize") => {
     if (!org) return;
@@ -1015,16 +1032,17 @@ export default function TeamRoster() {
         {/* Header row */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "minmax(180px, 1.2fr) minmax(160px, 1fr) minmax(120px, 1fr) minmax(100px, 0.8fr) minmax(120px, 0.8fr)",
+          gridTemplateColumns: "minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(80px, 0.5fr) minmax(100px, 0.8fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr)",
           gap: 0, padding: "8px 16px",
           background: "#0f172a",
           borderBottom: "1px solid #1e293b",
         }}>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Name</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Role</span>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Capabilities</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Stage</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Reports To</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Customers</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Capabilities</span>
         </div>
 
         {filteredPeople.map((person: any) => {
@@ -1039,7 +1057,7 @@ export default function TeamRoster() {
                 onClick={() => setExpandedPerson(isExpanded ? null : person.name)}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(180px, 1.2fr) minmax(160px, 1fr) minmax(120px, 1fr) minmax(100px, 0.8fr) minmax(120px, 0.8fr)",
+                  gridTemplateColumns: "minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(80px, 0.5fr) minmax(100px, 0.8fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr)",
                   gap: 0, padding: "10px 16px",
                   alignItems: "center",
                   background: isExpanded ? "#111827" : "transparent",
@@ -1092,6 +1110,50 @@ export default function TeamRoster() {
                   )}
                 </div>
 
+                {/* Stage */}
+                <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                  {(() => {
+                    const stages = Array.from<string>(new Set(person.assignments.map((a: any) => String(a.stage))));
+                    return stages.length > 0 ? stages.map((s) => (
+                      <span key={s} style={{
+                        fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 700,
+                        background: (STAGES[s]?.color || "#94a3b8") + "20",
+                        color: STAGES[s]?.color || "#94a3b8",
+                        border: `1px solid ${(STAGES[s]?.color || "#94a3b8")}30`,
+                      }}>
+                        {STAGES[s]?.label || s}
+                      </span>
+                    )) : <span style={{ fontSize: 11, color: "#334155" }}>—</span>;
+                  })()}
+                </div>
+
+                {/* Reports To */}
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  {person.layerLeaders.length > 0 ? (
+                    person.layerLeaders.slice(0, 2).map((ll: any, i: number) => (
+                      <span key={i} style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>{ll.leaderName}</span>
+                    ))
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
+                </div>
+
+                {/* Customers */}
+                <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                  {uniqueProducts.length > 0 ? uniqueProducts.map((a: any) => (
+                    <span key={a.productId} style={{
+                      fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
+                      background: (TYPE_COLORS[a.productType] || "#6366f1") + "15",
+                      color: (TYPE_COLORS[a.productType] || "#6366f1") + "cc",
+                      border: `1px solid ${(TYPE_COLORS[a.productType] || "#6366f1")}20`,
+                    }}>
+                      {a.productName}
+                    </span>
+                  )) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
+                </div>
+
                 {/* Capabilities */}
                 <div style={{ display: "flex", alignItems: "center", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
                   {meta.capabilities.length > 0 ? (
@@ -1107,33 +1169,6 @@ export default function TeamRoster() {
                       )}
                     </div>
                   ) : (
-                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
-                  )}
-                </div>
-
-                {/* Reports To */}
-                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                  {person.layerLeaders.length > 0 ? (
-                    person.layerLeaders.slice(0, 2).map((ll: any, i: number) => (
-                      <span key={i} style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>{ll.leaderName}</span>
-                    ))
-                  ) : (
-                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
-                  )}
-                </div>
-
-                {/* Assignments */}
-                <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
-                  {uniqueProducts.length > 0 ? uniqueProducts.map((a: any) => (
-                    <span key={a.productId} style={{
-                      fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
-                      background: (TYPE_COLORS[a.productType] || "#6366f1") + "15",
-                      color: (TYPE_COLORS[a.productType] || "#6366f1") + "cc",
-                      border: `1px solid ${(TYPE_COLORS[a.productType] || "#6366f1")}20`,
-                    }}>
-                      {a.productName}
-                    </span>
-                  )) : (
                     <span style={{ fontSize: 11, color: "#334155" }}>—</span>
                   )}
                 </div>
@@ -1232,13 +1267,21 @@ export default function TeamRoster() {
                                 <span style={{ fontSize: 11, color: "#64748b" }}>→ {a.layerLabel}</span>
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{
-                                  fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
-                                  background: STAGES[a.stage]?.color + "20",
-                                  color: STAGES[a.stage]?.color || "#94a3b8",
-                                }}>
-                                  {STAGES[a.stage]?.label || a.stage}
-                                </span>
+                                <select value={a.stage}
+                                  onChange={e => changeStage(person.name, a.productId, a.layerId, e.target.value)}
+                                  style={{
+                                    fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
+                                    background: STAGES[a.stage]?.color + "20",
+                                    color: STAGES[a.stage]?.color || "#94a3b8",
+                                    border: `1px solid ${(STAGES[a.stage]?.color || "#94a3b8")}30`,
+                                    outline: "none", cursor: "pointer", fontFamily: "inherit",
+                                    appearance: "auto",
+                                  }}>
+                                  <option value="stabilize">Stabilize</option>
+                                  <option value="modernize">Modernize</option>
+                                  <option value="productize">Productize</option>
+                                  <option value="all">All Stages</option>
+                                </select>
                                 <button onClick={() => removeAssignment(person.name, a.productId, a.layerId)}
                                   style={{
                                     background: "none", border: "none", color: "#475569", cursor: "pointer",
