@@ -2,7 +2,7 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 
-const client = new ConvexHttpClient("https://little-toucan-481.convex.cloud");
+const client = new ConvexHttpClient(process.env.CONVEX_URL || "https://elegant-meerkat-935.convex.cloud");
 
 const TEAM: [string, string][] = [
   // First block
