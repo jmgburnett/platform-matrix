@@ -1,18 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MatrixOrg from "@/components/matrix-org";
 
 const PASSCODE = "Manatee";
+const AUTH_KEY = "pm-auth";
 
 export default function Home() {
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState(false);
 
+  useEffect(() => {
+    if (sessionStorage.getItem(AUTH_KEY) === "1") setUnlocked(true);
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input === PASSCODE) {
+      sessionStorage.setItem(AUTH_KEY, "1");
       setUnlocked(true);
     } else {
       setError(true);
