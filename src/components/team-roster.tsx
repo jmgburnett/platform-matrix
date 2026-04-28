@@ -946,6 +946,56 @@ export default function TeamRoster() {
     saveOrgData(updated);
   };
 
+  // Change customer for an assignment (move from one product to another, same layer+stage)
+  const changeProduct = (personName: string, oldProductId: string, layerId: string, newProductId: string) => {
+    if (!org || oldProductId === newProductId) return;
+    const oldProd = org.products.find((p: any) => p.id === oldProductId);
+    const stage = oldProd?.cells?.[layerId]?.find((item: any) => item.name === personName)?.stage || "stabilize";
+    // Remove from old
+    const updated = {
+      ...org,
+      products: org.products.map((p: any) => {
+        if (p.id === oldProductId) {
+          const newCells = { ...p.cells };
+          newCells[layerId] = (newCells[layerId] || []).filter((item: any) => item.name !== personName);
+          return { ...p, cells: newCells };
+        }
+        if (p.id === newProductId) {
+          const newCells = { ...p.cells };
+          // Don't duplicate
+          if (!(newCells[layerId] || []).some((item: any) => item.name === personName)) {
+            newCells[layerId] = [...(newCells[layerId] || []), { name: personName, stage }];
+          }
+          return { ...p, cells: newCells };
+        }
+        return p;
+      }),
+    };
+    saveOrgData(updated);
+  };
+
+  // Change layer for an assignment (move from one layer to another, same product+stage)
+  const changeLayer = (personName: string, productId: string, oldLayerId: string, newLayerId: string) => {
+    if (!org || oldLayerId === newLayerId) return;
+    const prod = org.products.find((p: any) => p.id === productId);
+    const stage = prod?.cells?.[oldLayerId]?.find((item: any) => item.name === personName)?.stage || "stabilize";
+    const updated = {
+      ...org,
+      products: org.products.map((p: any) => {
+        if (p.id !== productId) return p;
+        const newCells = { ...p.cells };
+        // Remove from old layer
+        newCells[oldLayerId] = (newCells[oldLayerId] || []).filter((item: any) => item.name !== personName);
+        // Add to new layer
+        if (!(newCells[newLayerId] || []).some((item: any) => item.name === personName)) {
+          newCells[newLayerId] = [...(newCells[newLayerId] || []), { name: personName, stage }];
+        }
+        return { ...p, cells: newCells };
+      }),
+    };
+    saveOrgData(updated);
+  };
+
   // Change stage for a person in a specific product+layer cell
   const changeStage = (personName: string, productId: string, layerId: string, newStage: string) => {
     if (!org) return;
@@ -1364,13 +1414,29 @@ export default function TeamRoster() {
                               padding: "6px 10px", background: "#0f172a", borderRadius: 8,
                               border: "1px solid #1e293b",
                             }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <span style={{
-                                  fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 700,
-                                  background: (TYPE_COLORS[a.productType] || "#6366f1") + "20",
-                                  color: TYPE_COLORS[a.productType] || "#6366f1",
-                                }}>{a.productName}</span>
-                                <span style={{ fontSize: 11, color: "#64748b" }}>→ {a.layerLabel}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <select value={a.productId}
+                                  onChange={e => changeProduct(person.name, a.productId, a.layerId, e.target.value)}
+                                  style={{
+                                    fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 700,
+                                    background: (TYPE_COLORS[a.productType] || "#6366f1") + "20",
+                                    color: TYPE_COLORS[a.productType] || "#6366f1",
+                                    border: `1px solid ${(TYPE_COLORS[a.productType] || "#6366f1")}30`,
+                                    outline: "none", cursor: "pointer", fontFamily: "inherit",
+                                  }}>
+                                  {products.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                                <span style={{ fontSize: 11, color: "#475569" }}>→</span>
+                                <select value={a.layerId}
+                                  onChange={e => changeLayer(person.name, a.productId, a.layerId, e.target.value)}
+                                  style={{
+                                    fontSize: 10, padding: "1px 6px", borderRadius: 4,
+                                    background: "#1e293b", color: "#94a3b8",
+                                    border: "1px solid #334155",
+                                    outline: "none", cursor: "pointer", fontFamily: "inherit",
+                                  }}>
+                                  {layers.map((l: any) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                                </select>
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                 <select value={a.stage}
