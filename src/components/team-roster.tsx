@@ -1269,6 +1269,45 @@ export default function TeamRoster() {
                         org={org}
                         onSaveOrg={saveOrgData}
                       />
+
+                      {/* Accountable To — product leads for assigned customers */}
+                      {(() => {
+                        const productLeads = [...new Map(
+                          person.assignments.map((a: any) => {
+                            const prod = org.products.find((p: any) => p.id === a.productId);
+                            return [a.productId, { productName: prod?.name || a.productName, productType: prod?.type || a.productType, productLead: prod?.productLead || "TBD" }];
+                          })
+                        ).values()];
+                        return productLeads.length > 0 ? (
+                          <div>
+                            <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 8 }}>
+                              Accountable To
+                            </label>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              {productLeads.map((pl: any, i: number) => (
+                                <div key={i} style={{
+                                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                                  padding: "6px 10px", background: "#0f172a", borderRadius: 8,
+                                  border: "1px solid #1e293b",
+                                }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>{pl.productLead}</span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{
+                                      fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
+                                      background: (TYPE_COLORS[pl.productType] || "#6366f1") + "15",
+                                      color: (TYPE_COLORS[pl.productType] || "#6366f1") + "cc",
+                                      border: `1px solid ${(TYPE_COLORS[pl.productType] || "#6366f1")}20`,
+                                    }}>{pl.productName}</span>
+                                    <span style={{ fontSize: 10, color: "#475569" }}>Product Lead</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 </div>
