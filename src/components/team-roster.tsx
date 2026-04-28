@@ -987,105 +987,131 @@ export default function TeamRoster() {
       </div>
 
       {/* Roster Grid */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 0, background: "#0c0f1a", borderRadius: 12, border: "1px solid #1e293b", overflow: "hidden" }}>
         {/* Header row */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "220px 180px 1fr 180px 200px",
-          gap: 1, padding: "10px 16px",
-          background: "#0f172a", borderRadius: "10px 10px 0 0",
+          gridTemplateColumns: "minmax(180px, 1.2fr) minmax(160px, 1fr) minmax(120px, 1fr) minmax(100px, 0.8fr) minmax(120px, 0.8fr)",
+          gap: 0, padding: "8px 16px",
+          background: "#0f172a",
           borderBottom: "1px solid #1e293b",
         }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#64748b" }}>Name</span>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#64748b" }}>Role</span>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#64748b" }}>Capabilities</span>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#64748b" }}>Reports To</span>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#64748b" }}>Assignments</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Name</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Role</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Capabilities</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Reports To</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Customers</span>
         </div>
 
         {filteredPeople.map((person: any) => {
           const meta = getMeta(person.name);
           const isExpanded = expandedPerson === person.name;
-          // Unique layers
           const uniqueLayers = [...new Map(person.assignments.map((a: any) => [a.layerId, a])).values()];
-          // Unique products
           const uniqueProducts = [...new Map(person.assignments.map((a: any) => [a.productId, a])).values()];
 
           return (
             <div key={person.name}>
-              {/* Main row */}
               <div
                 onClick={() => setExpandedPerson(isExpanded ? null : person.name)}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "220px 180px 1fr 180px 200px",
-                  gap: 1, padding: "12px 16px",
-                  background: isExpanded ? "#111827" : "#0c0f1a",
-                  borderBottom: isExpanded ? "none" : "1px solid #0f172a",
+                  gridTemplateColumns: "minmax(180px, 1.2fr) minmax(160px, 1fr) minmax(120px, 1fr) minmax(100px, 0.8fr) minmax(120px, 0.8fr)",
+                  gap: 0, padding: "10px 16px",
+                  alignItems: "center",
+                  background: isExpanded ? "#111827" : "transparent",
+                  borderBottom: "1px solid #131820",
                   cursor: "pointer",
                   transition: "background 0.15s",
                 }}
-                onMouseEnter={e => { if (!isExpanded) (e.currentTarget as HTMLElement).style.background = "#111827"; }}
-                onMouseLeave={e => { if (!isExpanded) (e.currentTarget as HTMLElement).style.background = "#0c0f1a"; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#111827"; }}
+                onMouseLeave={e => { if (!isExpanded) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
               >
                 {/* Name */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {isExpanded ? <CaretDown size={12} weight="bold" color="#64748b" /> : <CaretRight size={12} weight="bold" color="#64748b" />}
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 12 }}>
+                    {isExpanded ? <CaretDown size={10} weight="bold" color="#475569" /> : <CaretRight size={10} weight="bold" color="#334155" />}
+                  </div>
                   <div style={{
-                    width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center",
-                    justifyContent: "center", fontSize: 10, fontWeight: 700,
-                    background: "linear-gradient(135deg, #1e293b, #334155)", color: "#94a3b8",
+                    width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center",
+                    justifyContent: "center", fontSize: 10, fontWeight: 700, flexShrink: 0,
+                    background: `linear-gradient(135deg, ${person.assignments[0] ? (TYPE_COLORS[person.assignments[0].productType] || "#6366f1") + "30" : "#1e293b"}, #1e293b)`,
+                    color: "#94a3b8", border: "1px solid #1e293b",
                   }}>
                     {person.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }} onClick={e => e.stopPropagation()}>
-                    <ET value={person.name} onChange={v => renamePerson(person.name, v)} style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }} />
-                  </span>
+                  <div style={{ minWidth: 0 }} onClick={e => e.stopPropagation()}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", lineHeight: 1.2 }}>
+                      <ET value={person.name} onChange={v => renamePerson(person.name, v)} style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }} />
+                    </div>
+                    {person.layerLeaders.length > 0 && (
+                      <div style={{ fontSize: 10, color: "#475569", marginTop: 1 }}>
+                        {[...new Set(person.assignments.map((a: any) => a.layerLabel))].slice(0, 2).join(" · ")}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Role */}
-                <div style={{ display: "flex", alignItems: "center", minWidth: 140 }} onClick={e => e.stopPropagation()}>
-                  <RoleSelect value={meta.role} onChange={v => updateMeta(person.name, { role: v })} compact
-                    customJDTitles={customJDTitles} onViewJD={handleViewJD} onCreateJD={handleCreateJD} />
+                <div style={{ display: "flex", alignItems: "center" }} onClick={e => e.stopPropagation()}>
+                  {meta.role ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 130 }}>{meta.role}</span>
+                      {(findJDByTitle(meta.role, customJDs) !== null) && (
+                        <button onClick={() => handleViewJD(meta.role)} title="View JD"
+                          style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 4, padding: "1px 5px", color: "#06b6d4", cursor: "pointer", fontSize: 9, fontWeight: 700, transition: "all 0.15s" }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = "#06b6d4"; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = "#334155"; }}>JD</button>
+                      )}
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
                 </div>
 
                 {/* Capabilities */}
                 <div style={{ display: "flex", alignItems: "center", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                    {meta.capabilities.slice(0, 4).map((c, i) => (
-                      <span key={i} style={{
-                        fontSize: 10, padding: "2px 7px", borderRadius: 5, background: "#1e293b",
-                        border: "1px solid #334155", color: "#94a3b8", whiteSpace: "nowrap",
-                      }}>{c}</span>
-                    ))}
-                    {meta.capabilities.length > 4 && (
-                      <span style={{ fontSize: 10, color: "#64748b" }}>+{meta.capabilities.length - 4}</span>
-                    )}
-                    {meta.capabilities.length === 0 && (
-                      <span style={{ fontSize: 11, color: "#475569", fontStyle: "italic" }}>No capabilities</span>
-                    )}
-                  </div>
+                  {meta.capabilities.length > 0 ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                      {meta.capabilities.slice(0, 3).map((c, i) => (
+                        <span key={i} style={{
+                          fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "#1e293b",
+                          border: "1px solid #252d3a", color: "#64748b", whiteSpace: "nowrap",
+                        }}>{c}</span>
+                      ))}
+                      {meta.capabilities.length > 3 && (
+                        <span style={{ fontSize: 9, color: "#334155" }}>+{meta.capabilities.length - 3}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
                 </div>
 
                 {/* Reports To */}
-                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 2 }}>
-                  {person.layerLeaders.map((ll: any, i: number) => (
-                    <span key={i} style={{ fontSize: 11, color: "#94a3b8" }}>{ll.leaderName}</span>
-                  ))}
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  {person.layerLeaders.length > 0 ? (
+                    person.layerLeaders.slice(0, 2).map((ll: any, i: number) => (
+                      <span key={i} style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>{ll.leaderName}</span>
+                    ))
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
                 </div>
 
                 {/* Assignments */}
-                <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                  {uniqueProducts.map((a: any) => (
+                <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                  {uniqueProducts.length > 0 ? uniqueProducts.map((a: any) => (
                     <span key={a.productId} style={{
-                      fontSize: 10, padding: "2px 7px", borderRadius: 5, fontWeight: 600,
-                      background: (TYPE_COLORS[a.productType] || "#6366f1") + "20",
-                      color: TYPE_COLORS[a.productType] || "#6366f1",
-                      border: `1px solid ${(TYPE_COLORS[a.productType] || "#6366f1")}30`,
+                      fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 600,
+                      background: (TYPE_COLORS[a.productType] || "#6366f1") + "15",
+                      color: (TYPE_COLORS[a.productType] || "#6366f1") + "cc",
+                      border: `1px solid ${(TYPE_COLORS[a.productType] || "#6366f1")}20`,
                     }}>
                       {a.productName}
                     </span>
-                  ))}
+                  )) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
                 </div>
               </div>
 
