@@ -33,6 +33,7 @@ interface RosterMeta {
   email: string;
   phone: string;
   notes: string;
+  status: "employee" | "provisional" | "";
 }
 
 /* ─── STAGES ─── */
@@ -826,7 +827,7 @@ export default function TeamRoster() {
     setEditJDKey(null);
   };
 
-  const getMeta = (name: string): RosterMeta => rosterMeta[name] || { role: "", capabilities: [], email: "", phone: "", notes: "" };
+  const getMeta = (name: string): RosterMeta => rosterMeta[name] || { role: "", capabilities: [], email: "", phone: "", notes: "", status: "" };
   const updateMeta = (name: string, updates: Partial<RosterMeta>) => {
     setRosterMeta(prev => ({ ...prev, [name]: { ...getMeta(name), ...updates } }));
   };
@@ -1238,8 +1239,13 @@ export default function TeamRoster() {
                     {person.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div style={{ minWidth: 0 }} onClick={e => e.stopPropagation()}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", lineHeight: 1.2 }}>
-                      <ET value={person.name} onChange={v => renamePerson(person.name, v)} style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", lineHeight: 1.2 }}>
+                        <ET value={person.name} onChange={v => renamePerson(person.name, v)} style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }} />
+                      </div>
+                      {meta.status === "provisional" && (
+                        <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, background: "#f59e0b20", color: "#f59e0b", border: "1px solid #f59e0b30", whiteSpace: "nowrap" }}>PROVISIONAL</span>
+                      )}
                     </div>
                     {person.layerLeaders.length > 0 && (
                       <div style={{ fontSize: 10, color: "#475569", marginTop: 1 }}>
@@ -1374,6 +1380,21 @@ export default function TeamRoster() {
                         </label>
                         <ET value={meta.notes} onChange={v => updateMeta(person.name, { notes: v })}
                           placeholder="Add notes..." style={{ fontSize: 12, color: "#94a3b8" }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 6 }}>
+                          Team Status
+                        </label>
+                        <select value={meta.status || ""} onChange={e => updateMeta(person.name, { status: e.target.value as RosterMeta["status"] })}
+                          style={{
+                            background: "#1e293b", border: "1px solid #334155", borderRadius: 8,
+                            padding: "6px 10px", color: meta.status === "provisional" ? "#f59e0b" : meta.status === "employee" ? "#10b981" : "#64748b",
+                            fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer", width: "100%",
+                          }}>
+                          <option value="">Not set</option>
+                          <option value="employee">Gloo Employee</option>
+                          <option value="provisional">Provisional</option>
+                        </select>
                       </div>
                     </div>
 
