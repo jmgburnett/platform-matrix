@@ -986,22 +986,36 @@ export default function TeamRoster() {
   const layers = useMemo(() => org?.layers?.map((l: any) => ({ id: l.id, label: l.label })) || [], [org]);
   const products = useMemo(() => org?.products?.map((p: any) => ({ id: p.id, name: p.name, type: p.type })) || [], [org]);
 
+  // Merge roster-only people (in metadata but not in matrix)
+  const allPeople = useMemo(() => {
+    const merged = { ...people };
+    Object.keys(rosterMeta).forEach(name => {
+      if (name === "_customJDs") return;
+      if (!merged[name]) {
+        merged[name] = { name, assignments: [], layerLeaders: [], executives: [] };
+      }
+    });
+    return merged;
+  }, [people, rosterMeta]);
+
   // Filter & search
   const filteredPeople = useMemo(() => {
-    return Object.values(people).filter((person: any) => {
+    return Object.values(allPeople).filter((person: any) => {
       const meta = getMeta(person.name);
       const matchesSearch = !search ||
         person.name.toLowerCase().includes(search.toLowerCase()) ||
         meta.role.toLowerCase().includes(search.toLowerCase()) ||
         meta.capabilities.some((c: string) => c.toLowerCase().includes(search.toLowerCase()));
-      const matchesLayer = filterLayer === "all" || person.assignments.some((a: any) => a.layerId === filterLayer);
+      const matchesLayer = filterLayer === "all" ||
+        (filterLayer === "__unassigned__" ? person.assignments.length === 0 : person.assignments.some((a: any) => a.layerId === filterLayer));
       const matchesProduct = filterProduct === "all" || person.assignments.some((a: any) => a.productId === filterProduct);
+      if (filterProduct !== "all" && person.assignments.length === 0) return false;
       return matchesSearch && matchesLayer && matchesProduct;
     }).sort((a: any, b: any) => a.name.localeCompare(b.name));
-  }, [people, search, filterLayer, filterProduct, rosterMeta]);
+  }, [allPeople, search, filterLayer, filterProduct, rosterMeta]);
 
   // Count stats
-  const totalPeople = Object.keys(people).length;
+  const totalPeople = Object.keys(allPeople).length;
 
   if (!org || !loaded) return (
     <div style={{ minHeight: "100vh", background: "#08080f", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1079,6 +1093,7 @@ export default function TeamRoster() {
             color: "#94a3b8", fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer",
           }}>
           <option value="all">All Layers</option>
+          <option value="__unassigned__">Unassigned</option>
           {layers.map((l: any) => <option key={l.id} value={l.id}>{l.label}</option>)}
         </select>
         <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)}
