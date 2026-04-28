@@ -7,7 +7,7 @@ import {
   MagnifyingGlass, ArrowLeft, CaretDown, CaretRight,
   User, Envelope, Phone, Note, Plus,
 } from "@phosphor-icons/react";
-import { JDS, JD_TITLES, findJDByTitle, emptyJD, type JobDescription } from "@/lib/job-descriptions";
+import { JDS, JD_TITLES, findJDByTitle, jdKeyToLayerId, emptyJD, type JobDescription } from "@/lib/job-descriptions";
 import "../app/globals.css";
 
 /* ─── TYPES ─── */
@@ -831,6 +831,70 @@ export default function TeamRoster() {
     setRosterMeta(prev => ({ ...prev, [name]: { ...getMeta(name), ...updates } }));
   };
 
+  // When role changes, move person to the matching layer across their product assignments
+  const updateRole = (personName: string, newRole: string) => {
+    updateMeta(personName, { role: newRole });
+    if (!org) return;
+
+    // Find the JD and its layer
+    const found = findJDByTitle(newRole, customJDs);
+    if (!found) return;
+    const targetLayerId = jdKeyToLayerId(found.key);
+    if (!targetLayerId) return;
+
+    // Check if layer exists in org
+    const layerExists = org.layers.some((l: any) => l.id === targetLayerId);
+    if (!layerExists) return;
+
+    // Get current assignments for this person
+    const currentAssignments: { productId: string; layerId: string; stage: string }[] = [];
+    (org.products || []).forEach((p: any) => {
+      Object.entries(p.cells || {}).forEach(([layerId, items]: [string, any]) => {
+        (items || []).forEach((item: any) => {
+          if (item.name === personName) {
+            currentAssignments.push({ productId: p.id, layerId, stage: item.stage });
+          }
+        });
+      });
+    });
+
+    // Move: remove from old layers, add to new layer (keep same products and stages)
+    const productIds = [...new Set(currentAssignments.map(a => a.productId))];
+    if (productIds.length === 0) return;
+
+    // Check if already in the target layer for all products
+    const alreadyCorrect = productIds.every(pid =>
+      currentAssignments.some(a => a.productId === pid && a.layerId === targetLayerId)
+    );
+    if (alreadyCorrect) return;
+
+    const updated = {
+      ...org,
+      products: org.products.map((p: any) => {
+        if (!productIds.includes(p.id)) return p;
+        const newCells: any = { ...p.cells };
+
+        // Find this person's stage for this product (from any layer)
+        const existing = currentAssignments.find(a => a.productId === p.id);
+        const stage = existing?.stage || "stabilize";
+
+        // Remove from all layers
+        Object.keys(newCells).forEach(layerId => {
+          if (newCells[layerId]) {
+            newCells[layerId] = newCells[layerId].filter((item: any) => item.name !== personName);
+          }
+        });
+
+        // Add to target layer
+        if (!newCells[targetLayerId]) newCells[targetLayerId] = [];
+        newCells[targetLayerId] = [...newCells[targetLayerId], { name: personName, stage }];
+
+        return { ...p, cells: newCells };
+      }),
+    };
+    saveOrgData(updated);
+  };
+
   // Save org helper
   const saveOrgData = (updated: any) => {
     setOrgLocal(updated);
@@ -1187,7 +1251,7 @@ export default function TeamRoster() {
                         <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#64748b", display: "block", marginBottom: 6 }}>
                           Role / Title
                         </label>
-                        <RoleSelect value={meta.role} onChange={v => updateMeta(person.name, { role: v })}
+                        <RoleSelect value={meta.role} onChange={v => updateRole(person.name, v)}
                           customJDTitles={customJDTitles} onViewJD={handleViewJD} onCreateJD={handleCreateJD} />
                       </div>
                       <div>

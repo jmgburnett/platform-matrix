@@ -87,6 +87,14 @@ export function findJDByTitle(title: string, customJDs?: Record<string, JobDescr
   return null;
 }
 
+/* Map a JD key to a layer ID (built-in JD keys match layer IDs) */
+export function jdKeyToLayerId(jdKey: string): string | null {
+  // Built-in JD keys match layer IDs directly
+  const builtInKeys = ["design", "appEng", "platformEng", "services", "infra", "product"];
+  if (builtInKeys.includes(jdKey)) return jdKey;
+  return null;
+}
+
 /* Empty JD template */
 export function emptyJD(): JobDescription {
   return {
