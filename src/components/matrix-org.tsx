@@ -793,13 +793,29 @@ export default function MatrixOrg() {
                     )}
 
                     {isCollapsed ? (
-                      <td colSpan={org.products.length + 2} style={{ padding:"5px 14px", borderBottom:"1px solid #1e293b", background:layer.color+"33", verticalAlign:"middle" }}>
+                      <>
+                      <td style={{ padding:"5px 14px", borderRight:"1px solid #1e293b", borderBottom:"1px solid #1e293b", background:layer.color+"33", verticalAlign:"middle" }}>
                         <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
                           <div style={{ width:"3px", height:"14px", background:layer.accent, borderRadius:"2px", flexShrink:0 }} />
                           <span style={{ fontSize:"10px", fontWeight:"600", color:"#64748b" }}>{layer.label}</span>
                           <span style={{ fontSize:"9px", color:layer.accent+"60", fontFamily:"Courier New, monospace" }}>{layer.sublabel}</span>
                         </div>
                       </td>
+                      {org.products.map(prod => {
+                        const count = (prod.cells[layer.id] || []).length;
+                        const tc = typeColors[prod.type] || typeColors.church;
+                        return (
+                          <td key={prod.id} style={{ padding:"5px 10px", borderRight:"1px solid #1e293b", borderBottom:"1px solid #1e293b", background:tc.bg, verticalAlign:"middle", textAlign:"center" }}>
+                            {count > 0 ? (
+                              <span style={{ fontSize:"11px", fontWeight:"700", color:layer.accent, opacity:0.7 }}>{count}</span>
+                            ) : (
+                              <span style={{ fontSize:"11px", color:"#1e293b" }}>—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td style={{ borderBottom:"1px solid #1e293b", background:"transparent" }} />
+                      </>
                     ) : (
                       <>
                         <td style={{ padding:"16px", borderRight:"1px solid #1e293b", borderBottom:"1px solid #1e293b", background:layer.color+"55", verticalAlign:"top", position:"relative" }}
