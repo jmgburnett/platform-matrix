@@ -167,7 +167,7 @@ function extractPeople(org: any): Record<string, PersonFromMatrix> {
 }
 
 /* ─── JD View Modal ─── */
-function JDModal({ jd, onClose, accent }: { jd: JobDescription; onClose: () => void; accent?: string }) {
+function JDModal({ jd, onClose, onEdit, accent }: { jd: JobDescription; onClose: () => void; onEdit?: () => void; accent?: string }) {
   const color = accent || "#06b6d4";
   return (
     <div style={{
@@ -229,7 +229,13 @@ function JDModal({ jd, onClose, accent }: { jd: JobDescription; onClose: () => v
           </div>
         )}
 
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+          {onEdit && (
+            <button onClick={onEdit} style={{
+              background: "#1e3a5f", border: "1px solid #3b82f6", borderRadius: 8, padding: "8px 20px",
+              color: "#60a5fa", cursor: "pointer", fontSize: 12, fontFamily: "inherit", fontWeight: 600,
+            }}>Edit</button>
+          )}
           <button onClick={onClose} style={{
             background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "8px 20px",
             color: "#94a3b8", cursor: "pointer", fontSize: 12, fontFamily: "inherit",
@@ -732,8 +738,10 @@ export default function TeamRoster() {
   const [filterLayer, setFilterLayer] = useState("all");
   const [filterProduct, setFilterProduct] = useState("all");
   const [viewJD, setViewJD] = useState<JobDescription | null>(null);
+  const [viewJDKey, setViewJDKey] = useState<string | null>(null);
   const [editJD, setEditJD] = useState<boolean>(false);
   const [editJDInitial, setEditJDInitial] = useState<JobDescription | undefined>(undefined);
+  const [editJDKey, setEditJDKey] = useState<string | null>(null);
   const [customJDs, setCustomJDs] = useState<Record<string, JobDescription>>({});
 
   const convexOrg = useQuery(api.orgData.get, { key: "default" });
@@ -788,18 +796,34 @@ export default function TeamRoster() {
 
   const handleViewJD = (title: string) => {
     const found = findJDByTitle(title, customJDs);
-    if (found) setViewJD(found.jd);
+    if (found) {
+      setViewJD(found.jd);
+      setViewJDKey(found.key);
+    }
+  };
+
+  const handleEditJDFromView = () => {
+    if (viewJD) {
+      setEditJDInitial(viewJD);
+      setEditJDKey(viewJDKey);
+      setViewJD(null);
+      setViewJDKey(null);
+      setEditJD(true);
+    }
   };
 
   const handleCreateJD = () => {
     setEditJDInitial(undefined);
+    setEditJDKey(null);
     setEditJD(true);
   };
 
   const handleSaveJD = (jd: JobDescription) => {
-    const key = "custom_" + jd.title.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    // Use existing key if editing, generate new one if creating
+    const key = editJDKey || "custom_" + jd.title.toLowerCase().replace(/[^a-z0-9]+/g, "_");
     setCustomJDs(prev => ({ ...prev, [key]: jd }));
     setEditJD(false);
+    setEditJDKey(null);
   };
 
   const getMeta = (name: string): RosterMeta => rosterMeta[name] || { role: "", capabilities: [], email: "", phone: "", notes: "" };
@@ -914,7 +938,7 @@ export default function TeamRoster() {
   return (
     <div style={{ minHeight: "100vh", background: "#08080f", color: "#e2e8f0", padding: "24px 32px" }}>
       {/* JD Modals */}
-      {viewJD && <JDModal jd={viewJD} onClose={() => setViewJD(null)} />}
+      {viewJD && <JDModal jd={viewJD} onClose={() => { setViewJD(null); setViewJDKey(null); }} onEdit={handleEditJDFromView} />}
       {editJD && <JDEditorModal initial={editJDInitial} onSave={handleSaveJD} onClose={() => setEditJD(false)} />}
 
       {/* Header */}
