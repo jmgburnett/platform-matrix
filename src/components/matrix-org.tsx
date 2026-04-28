@@ -813,6 +813,9 @@ export default function MatrixOrg() {
             style={{ fontSize:"9px", fontFamily:"Courier New, monospace", color:"#475569", background:"none", border:"1px solid #1e293b", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", letterSpacing:"1px" }}
             onMouseEnter={e=>e.currentTarget.style.color="#ef4444"}
             onMouseLeave={e=>e.currentTarget.style.color="#475569"}>RESET</button>
+          <a href="/roster" style={{ padding:"5px 14px", borderRadius:"16px", fontSize:"11px", fontWeight:"500", color:"rgba(255,255,255,0.7)", background:"rgba(255,255,255,0.1)", textDecoration:"none", border:"1px solid rgba(255,255,255,0.06)", transition:"all 0.15s", display:"inline-flex", alignItems:"center", gap:"6px" }}>
+            👤 Roster
+          </a>
         </div>
       </div>
 

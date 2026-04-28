@@ -9,6 +9,7 @@
  */
 
 import type * as orgData from "../orgData.js";
+import type * as rosterData from "../rosterData.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +19,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   orgData: typeof orgData;
+  rosterData: typeof rosterData;
 }>;
 
 /**

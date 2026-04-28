@@ -7,4 +7,10 @@ export default defineSchema({
     data: v.string(), // JSON-stringified org state
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
+
+  rosterData: defineTable({
+    key: v.string(), // "default"
+    data: v.string(), // JSON-stringified roster metadata
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
 });
