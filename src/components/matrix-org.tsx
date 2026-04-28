@@ -740,6 +740,8 @@ export default function MatrixOrg() {
   const [assignOpen, setAssignOpen] = useState<any>(null);
 
   const updateLayerLead   = (id,v) => setOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,lead:{...l.lead,name:v}}:l)}));
+  const updateLayerLabel  = (id,v) => setOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,label:v}:l)}));
+  const updateLayerSublabel = (id,v) => setOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,sublabel:v}:l)}));
   const addLayer          = (layer) => { const id=uid(); setOrg(o=>({...o,layers:[...o.layers,{...layer,id}]})); setShowAddRow(false); };
   const removeLayer       = (id)    => setOrg(o=>({...o,layers:o.layers.filter(l=>l.id!==id)}));
   const moveLayer         = (id,dir)=> setOrg(o=>{ const arr=[...o.layers]; const i=arr.findIndex(l=>l.id===id); const j=i+dir; if(j<0||j>=arr.length)return o; [arr[i],arr[j]]=[arr[j],arr[i]]; return{...o,layers:arr}; });
@@ -988,8 +990,8 @@ export default function MatrixOrg() {
                           <div style={{ display:"flex", gap:"10px" }}>
                             <div style={{ width:"3px", minHeight:"50px", background:layer.accent, borderRadius:"2px", flexShrink:0 }} />
                             <div style={{ flex:1 }}>
-                              <div style={{ fontSize:"12px", fontWeight:"700", color:"#f1f5f9", lineHeight:"1.3" }}>{layer.label}</div>
-                              <div style={{ fontSize:"9px", color:layer.accent, fontFamily:"Courier New, monospace", marginTop:"2px", marginBottom:"8px" }}>{layer.sublabel}</div>
+                              <div style={{ fontSize:"12px", fontWeight:"700", color:"#f1f5f9", lineHeight:"1.3" }}><ET value={layer.label} onChange={v=>updateLayerLabel(layer.id,v)} style={{ fontSize:"12px", fontWeight:"700", color:"#f1f5f9" }} /></div>
+                              <div style={{ fontSize:"9px", color:layer.accent, fontFamily:"Courier New, monospace", marginTop:"2px", marginBottom:"8px" }}><ET value={layer.sublabel} onChange={v=>updateLayerSublabel(layer.id,v)} style={{ fontSize:"9px", color:layer.accent, fontFamily:"Courier New, monospace" }} /></div>
                               <div style={{ padding:"7px 10px", background:"#080e14", border:"1px solid "+layer.accent+"33", borderRadius:"8px" }}>
                                 <ET value={layer.lead.name} onChange={v=>updateLayerLead(layer.id,v)} style={{ fontSize:"11px", fontWeight:"700", color:layer.accent }} />
                                 <div style={{ fontSize:"9px", color:"#94a3b8" }}>{layer.lead.role}</div>
