@@ -8,6 +8,7 @@ import {
   User, Envelope, Phone, Note, Plus,
 } from "@phosphor-icons/react";
 import { JDS, JD_TITLES, findJDByTitle, jdKeyToLayerId, emptyJD, type JobDescription } from "@/lib/job-descriptions";
+import SharedHeader from "./shared-header";
 import "../app/globals.css";
 
 /* ─── TYPES ─── */
@@ -1282,53 +1283,15 @@ export default function TeamRoster() {
       {viewJD && <JDModal jd={viewJD} onClose={() => { setViewJD(null); setViewJDKey(null); }} onEdit={handleEditJDFromView} />}
       {editJD && <JDEditorModal initial={editJDInitial} onSave={handleSaveJD} onClose={() => setEditJD(false)} />}
 
-      {/* Header */}
-      <div style={{
-        background: "linear-gradient(135deg, #0f172a, #1e1b4b, #0f172a)",
-        borderRadius: 16, padding: "28px 32px", marginBottom: 24,
-        border: "1px solid rgba(255,255,255,0.06)",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", flexWrap: "wrap", gap: 16 }}>
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>
-              Gloo — Platform & Product Team
-            </p>
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: "white", margin: 0, letterSpacing: -0.5 }}>Team Roster</h1>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-              {totalPeople} team members · Synced with Platform Matrix
-            </p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{
-              borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 500, color: "white",
-              background: saved ? "rgba(34,197,94,0.3)" : saving ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.1)",
-            }}>
-              {saved ? "✓ Saved" : saving ? "Saving..." : "Auto-save"}
-            </span>
-            <button onClick={() => setShowAddPerson(true)} style={{
-              display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 20, padding: "6px 14px",
-              fontSize: 12, fontWeight: 600, color: "#10b981", background: "rgba(16,185,129,0.1)",
-              border: "1px solid rgba(16,185,129,0.2)", cursor: "pointer", transition: "all 0.15s",
-            }}>
-              + Add Person
-            </button>
-            <a href="/" style={{
-              display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 20, padding: "6px 14px",
-              fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)",
-              textDecoration: "none", transition: "all 0.15s", border: "1px solid rgba(255,255,255,0.06)",
-            }}>
-              <ArrowLeft size={12} /> Matrix View
-            </a>
-            <a href="/customers" style={{
-              display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 20, padding: "6px 14px",
-              fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)",
-              textDecoration: "none", transition: "all 0.15s", border: "1px solid rgba(255,255,255,0.06)",
-            }}>
-              🏢 Customers
-            </a>
-          </div>
-        </div>
-      </div>
+      <SharedHeader
+        title="Team Roster"
+        subtitle={`${totalPeople} team members · Synced with Platform Matrix`}
+        activePage="roster"
+        saveStatus={saved ? "saved" : saving ? "saving" : "idle"}
+        actions={[
+          { label: "+ ADD PERSON", onClick: () => setShowAddPerson(true), variant: "success" },
+        ]}
+      />
 
       {/* Filters */}
       <div style={{

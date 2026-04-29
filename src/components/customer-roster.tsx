@@ -7,6 +7,7 @@ import {
   MagnifyingGlass, ArrowLeft, CaretDown, CaretRight,
   User, Buildings, Tag, Plus, X,
 } from "@phosphor-icons/react";
+import SharedHeader from "./shared-header";
 import "../app/globals.css";
 
 /* ─── CONSTANTS ─── */
@@ -191,50 +192,28 @@ export default function CustomerRoster() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#030712", color: "#e2e8f0", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      {/* Header */}
-      <div style={{
-        padding: "16px 24px", borderBottom: "1px solid #1e293b",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        background: "linear-gradient(180deg, #0f172a 0%, #030712 100%)",
-        position: "sticky", top: 0, zIndex: 100,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <a href="/" style={{
-            padding: "5px 14px", borderRadius: 16, fontSize: 11, fontWeight: 500,
-            color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.1)",
-            textDecoration: "none", border: "1px solid rgba(255,255,255,0.06)",
-            display: "inline-flex", alignItems: "center", gap: 6,
-          }}>
-            <ArrowLeft size={12} /> Matrix
-          </a>
-          <a href="/roster" style={{
-            padding: "5px 14px", borderRadius: 16, fontSize: 11, fontWeight: 500,
-            color: "rgba(255,255,255,0.5)", background: "transparent",
-            textDecoration: "none", border: "1px solid rgba(255,255,255,0.06)",
-            display: "inline-flex", alignItems: "center", gap: 6,
-          }}>
-            Team Roster
-          </a>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em" }}>Customer Roster</div>
-            <div style={{ fontSize: 11, color: "#475569" }}>{customers.length} customers · {customers.reduce((s: number, c: any) => s + c.people.length, 0)} assignments</div>
+      <SharedHeader
+        title="Customer Roster"
+        subtitle={`${customers.length} customers · ${customers.reduce((s: number, c: any) => s + c.people.length, 0)} assignments`}
+        activePage="customers"
+        saveStatus={userEdited ? "saving" : "idle"}
+      >
+        {/* Search */}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "relative", width: 320 }}>
+            <MagnifyingGlass size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569" }} />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search customers or people..."
+              style={{
+                width: "100%", padding: "8px 12px 8px 32px",
+                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8,
+                color: "#e2e8f0", fontSize: 12, outline: "none", fontFamily: "inherit",
+              }}
+            />
           </div>
         </div>
-
-        {/* Search */}
-        <div style={{ position: "relative", width: 260 }}>
-          <MagnifyingGlass size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569" }} />
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search customers or people..."
-            style={{
-              width: "100%", padding: "8px 12px 8px 32px",
-              background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8,
-              color: "#e2e8f0", fontSize: 12, outline: "none", fontFamily: "inherit",
-            }}
-          />
-        </div>
-      </div>
+      </SharedHeader>
 
       {/* Category filters */}
       <div style={{ padding: "12px 24px", display: "flex", gap: 8, flexWrap: "wrap", borderBottom: "1px solid #0f172a" }}>

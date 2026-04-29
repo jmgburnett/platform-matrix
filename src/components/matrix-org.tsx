@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { JDS } from "@/lib/job-descriptions";
+import SharedHeader from "./shared-header";
 
 const ACCENT_OPTIONS = ["#4a9eff","#f97316","#3ecf8e","#c084fc","#f472b6","#facc15","#34d399","#60a5fa"];
 const COLOR_OPTIONS  = ["#1a3a5c","#1a2a3a","#1a3d2e","#3a1a3a","#2a1a1a","#1a3a2a","#2a2a1a","#1a1a3a"];
@@ -582,47 +583,27 @@ export default function MatrixOrg() {
         />
       )}
 
-      {/* hint bar */}
-      <div style={{ textAlign:"center", marginBottom:"6px", display:"flex", alignItems:"center", justifyContent:"center", gap:"16px", flexWrap:"wrap" }}>
-        <span style={{ fontSize:"10px", color:"#475569", fontFamily:"Courier New, monospace" }}>
-          ✎ Click any name to rename · hover chips for controls · ⟳ cycles stage · + to add a role
-        </span>
-        <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-          <span style={{ fontSize:"10px", fontFamily:"Courier New, monospace", color: saved ? "#3ecf8e" : saving ? "#facc15" : "#334155", transition:"color 0.3s" }}>
-            {saved ? "✓ saved to cloud" : saving ? "saving..." : "auto-saving"}
-          </span>
-          <button onClick={() => { navigator.clipboard.writeText(JSON.stringify(org, null, 2)).then(()=>alert("Copied!")); }}
-            style={{ fontSize:"9px", fontFamily:"Courier New, monospace", color:"#3ecf8e", background:"none", border:"1px solid #3ecf8e44", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", letterSpacing:"1px" }}>EXPORT</button>
-          <button onClick={() => { if (window.confirm("Reset to defaults?")) { setOrg(initData); } }}
-            style={{ fontSize:"9px", fontFamily:"Courier New, monospace", color:"#475569", background:"none", border:"1px solid #1e293b", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", letterSpacing:"1px" }}
-            onMouseEnter={e=>e.currentTarget.style.color="#ef4444"}
-            onMouseLeave={e=>e.currentTarget.style.color="#475569"}>RESET</button>
-          <a href="/roster" style={{ padding:"5px 14px", borderRadius:"16px", fontSize:"11px", fontWeight:"500", color:"rgba(255,255,255,0.7)", background:"rgba(255,255,255,0.1)", textDecoration:"none", border:"1px solid rgba(255,255,255,0.06)", transition:"all 0.15s", display:"inline-flex", alignItems:"center", gap:"6px" }}>
-            👤 Roster
-          </a>
-          <a href="/customers" style={{ padding:"5px 14px", borderRadius:"16px", fontSize:"11px", fontWeight:"500", color:"rgba(255,255,255,0.7)", background:"rgba(255,255,255,0.1)", textDecoration:"none", border:"1px solid rgba(255,255,255,0.06)", transition:"all 0.15s", display:"inline-flex", alignItems:"center", gap:"6px" }}>
-            🏢 Customers
-          </a>
+      <SharedHeader
+        title="Platform Matrix Org"
+        subtitle="Q2 2026 · Draft pending Ben alignment"
+        activePage="matrix"
+        saveStatus={saved ? "saved" : saving ? "saving" : "idle"}
+        actions={[
+          { label: "EXPORT", onClick: () => navigator.clipboard.writeText(JSON.stringify(org, null, 2)).then(() => alert("Copied!")), variant: "success" },
+          { label: "RESET", onClick: () => { if (window.confirm("Reset to defaults?")) setOrg(initData); }, variant: "danger" },
+        ]}
+      >
+        {/* View toggle */}
+        <div style={{ display:"flex", justifyContent:"center" }}>
+          <div style={{ display:"flex", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:10, padding:3, gap:2 }}>
+            {[["people","👥  People"],["layers","⚙️  How Layers Work"]].map(([v,label])=>(
+              <button key={v} onClick={()=>setView(v)}
+                style={{ padding:"6px 18px", borderRadius:8, border:"none", cursor:"pointer", fontSize:11, fontWeight: view===v ? 700 : 400, fontFamily:"inherit", letterSpacing:"0.02em", transition:"all 0.15s",
+                  background:view===v?"rgba(255,255,255,0.1)":"transparent", color:view===v?"#f1f5f9":"#475569", boxShadow: view===v ? "0 1px 3px rgba(0,0,0,0.3)" : "none" }}>{label}</button>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* view toggle */}
-      <div style={{ display:"flex", justifyContent:"center", marginBottom:"20px" }}>
-        <div style={{ display:"flex", background:"#0b1320", border:"1px solid #1e293b", borderRadius:"8px", padding:"3px", gap:"3px" }}>
-          {[["people","👥  People"],["layers","⚙️  How Layers Work"]].map(([v,label])=>(
-            <button key={v} onClick={()=>setView(v)}
-              style={{ padding:"6px 18px", borderRadius:"6px", border:"none", cursor:"pointer", fontSize:"11px", fontFamily:"Courier New, monospace", letterSpacing:"1px", transition:"all 0.15s",
-                background:view===v?"#1e3a5f":"transparent", color:view===v?"#4a9eff":"#475569", fontWeight:view===v?"700":"400" }}>{label}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* header */}
-      <div style={{ textAlign:"center", marginBottom:"20px" }}>
-        <div style={{ fontSize:"10px", letterSpacing:"4px", color:"#475569", textTransform:"uppercase", marginBottom:"7px", fontFamily:"Courier New, monospace" }}>Gloo - Platform and Product Team</div>
-        <h1 style={{ fontSize:"26px", fontWeight:"700", margin:"0 0 3px", color:"#e2e8f0" }}>Platform Matrix Org</h1>
-        <p style={{ fontSize:"12px", color:"#475569", margin:0 }}>Q2 2026 - Draft pending Ben alignment</p>
-      </div>
+      </SharedHeader>
 
       {view === "layers" ? <LayerView layers={org.layers} /> : (<>
 
