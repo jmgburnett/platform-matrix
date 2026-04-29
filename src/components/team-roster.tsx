@@ -36,6 +36,12 @@ interface RosterMeta {
   status: "employee" | "provisional" | "";
   isEngineeringManager?: boolean;
   engineeringManager?: string; // name of assigned EM
+  isProductManager?: boolean;
+  productManager?: string;
+  isDesignManager?: boolean;
+  designManager?: string;
+  isProgramManager?: boolean;
+  programManager?: string;
 }
 
 /* ─── STAGES ─── */
@@ -868,10 +874,94 @@ export default function TeamRoster() {
     updateMeta(personName, { engineeringManager: emName });
   };
 
-  // Get list of designated EMs
+  // Product Manager helpers
+  const togglePMDesignation = (name: string) => {
+    const meta = getMeta(name);
+    const wasPM = !!meta.isProductManager;
+    updateMeta(name, { isProductManager: !wasPM });
+    if (wasPM) {
+      setRosterMeta(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(pName => {
+          if (next[pName]?.productManager === name) {
+            next[pName] = { ...next[pName], productManager: undefined };
+          }
+        });
+        return next;
+      });
+    }
+  };
+  const setPersonPM = (personName: string, pmName: string | undefined) => {
+    updateMeta(personName, { productManager: pmName });
+  };
+
+  // Design Manager helpers
+  const toggleDMDesignation = (name: string) => {
+    const meta = getMeta(name);
+    const wasDM = !!meta.isDesignManager;
+    updateMeta(name, { isDesignManager: !wasDM });
+    if (wasDM) {
+      setRosterMeta(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(pName => {
+          if (next[pName]?.designManager === name) {
+            next[pName] = { ...next[pName], designManager: undefined };
+          }
+        });
+        return next;
+      });
+    }
+  };
+  const setPersonDM = (personName: string, dmName: string | undefined) => {
+    updateMeta(personName, { designManager: dmName });
+  };
+
+  // Program Manager helpers
+  const togglePgMDesignation = (name: string) => {
+    const meta = getMeta(name);
+    const wasPgM = !!meta.isProgramManager;
+    updateMeta(name, { isProgramManager: !wasPgM });
+    if (wasPgM) {
+      setRosterMeta(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(pName => {
+          if (next[pName]?.programManager === name) {
+            next[pName] = { ...next[pName], programManager: undefined };
+          }
+        });
+        return next;
+      });
+    }
+  };
+  const setPersonPgM = (personName: string, pgmName: string | undefined) => {
+    updateMeta(personName, { programManager: pgmName });
+  };
+
+  // Get list of designated managers
   const engineeringManagers = useMemo(() => {
     return Object.entries(rosterMeta)
       .filter(([key, meta]) => key !== "_customJDs" && meta?.isEngineeringManager)
+      .map(([name]) => name)
+      .sort();
+  }, [rosterMeta]);
+
+  const productManagers = useMemo(() => {
+    return Object.entries(rosterMeta)
+      .filter(([key, meta]) => key !== "_customJDs" && meta?.isProductManager)
+      .map(([name]) => name)
+      .sort();
+  }, [rosterMeta]);
+
+  const designManagers = useMemo(() => {
+    return Object.entries(rosterMeta)
+      .filter(([key, meta]) => key !== "_customJDs" && meta?.isDesignManager)
+      .map(([name]) => name)
+      .sort();
+  }, [rosterMeta]);
+
+  const programManagers = useMemo(() => {
+    return Object.entries(rosterMeta)
+      .filter(([key, meta]) => key !== "_customJDs" && meta?.isProgramManager)
       .map(([name]) => name)
       .sort();
   }, [rosterMeta]);
@@ -1274,7 +1364,7 @@ export default function TeamRoster() {
         {/* Header row */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(80px, 0.5fr) minmax(100px, 0.8fr) minmax(90px, 0.6fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr)",
+          gridTemplateColumns: "minmax(180px, 1.2fr) minmax(140px, 1fr) minmax(60px, 0.4fr) minmax(90px, 0.7fr) minmax(85px, 0.55fr) minmax(85px, 0.55fr) minmax(80px, 0.55fr) minmax(85px, 0.55fr) minmax(90px, 0.6fr) minmax(100px, 0.7fr)",
           gap: 0, padding: "8px 16px",
           background: "#0f172a",
           borderBottom: "1px solid #1e293b",
@@ -1283,7 +1373,10 @@ export default function TeamRoster() {
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Role</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Stage</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Reports To</span>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#818cf8" }}>Eng. Manager</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#818cf8" }}>Eng. Mgr</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#f472b6" }}>Prod. Mgr</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#f97316" }}>Design Mgr</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#10b981" }}>Prog. Mgr</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Customers</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Capabilities</span>
         </div>
@@ -1300,7 +1393,7 @@ export default function TeamRoster() {
                 onClick={() => setExpandedPerson(isExpanded ? null : person.name)}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(80px, 0.5fr) minmax(100px, 0.8fr) minmax(90px, 0.6fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr)",
+                  gridTemplateColumns: "minmax(180px, 1.2fr) minmax(140px, 1fr) minmax(60px, 0.4fr) minmax(90px, 0.7fr) minmax(85px, 0.55fr) minmax(85px, 0.55fr) minmax(80px, 0.55fr) minmax(85px, 0.55fr) minmax(90px, 0.6fr) minmax(100px, 0.7fr)",
                   gap: 0, padding: "10px 16px",
                   alignItems: "center",
                   background: isExpanded ? "#111827" : "transparent",
@@ -1334,6 +1427,15 @@ export default function TeamRoster() {
                       )}
                       {meta.isEngineeringManager && (
                         <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, background: "#6366f120", color: "#818cf8", border: "1px solid #6366f130", whiteSpace: "nowrap" }}>EM</span>
+                      )}
+                      {meta.isProductManager && (
+                        <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, background: "#f472b620", color: "#f472b6", border: "1px solid #f472b630", whiteSpace: "nowrap" }}>PM</span>
+                      )}
+                      {meta.isDesignManager && (
+                        <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, background: "#f9731620", color: "#f97316", border: "1px solid #f9731630", whiteSpace: "nowrap" }}>DM</span>
+                      )}
+                      {meta.isProgramManager && (
+                        <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, background: "#10b98120", color: "#10b981", border: "1px solid #10b98130", whiteSpace: "nowrap" }}>PgM</span>
                       )}
                     </div>
                     {meta.engineeringManager && (
@@ -1400,6 +1502,39 @@ export default function TeamRoster() {
                     <span style={{ fontSize: 11, color: "#818cf8", lineHeight: 1.4 }}>{meta.engineeringManager}</span>
                   ) : meta.isEngineeringManager ? (
                     <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 700, background: "#6366f120", color: "#818cf8", border: "1px solid #6366f130", display: "inline-block", width: "fit-content" }}>IS EM</span>
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
+                </div>
+
+                {/* Product Manager */}
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  {meta.productManager ? (
+                    <span style={{ fontSize: 11, color: "#f472b6", lineHeight: 1.4 }}>{meta.productManager}</span>
+                  ) : meta.isProductManager ? (
+                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 700, background: "#f472b620", color: "#f472b6", border: "1px solid #f472b630", display: "inline-block", width: "fit-content" }}>IS PM</span>
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
+                </div>
+
+                {/* Design Manager */}
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  {meta.designManager ? (
+                    <span style={{ fontSize: 11, color: "#f97316", lineHeight: 1.4 }}>{meta.designManager}</span>
+                  ) : meta.isDesignManager ? (
+                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 700, background: "#f9731620", color: "#f97316", border: "1px solid #f9731630", display: "inline-block", width: "fit-content" }}>IS DM</span>
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
+                </div>
+
+                {/* Program Manager */}
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  {meta.programManager ? (
+                    <span style={{ fontSize: 11, color: "#10b981", lineHeight: 1.4 }}>{meta.programManager}</span>
+                  ) : meta.isProgramManager ? (
+                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 700, background: "#10b98120", color: "#10b981", border: "1px solid #10b98130", display: "inline-block", width: "fit-content" }}>IS PgM</span>
                   ) : (
                     <span style={{ fontSize: 11, color: "#334155" }}>—</span>
                   )}
@@ -1556,6 +1691,135 @@ export default function TeamRoster() {
                               {engineeringManagers.filter(n => n !== person.name).map(emName => (
                                 <option key={emName} value={emName}>{emName}</option>
                               ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Product Manager */}
+                      <div style={{ borderTop: "1px solid #1e293b", paddingTop: 14 }}>
+                        <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#f472b6", display: "block", marginBottom: 8 }}>
+                          Product Manager
+                        </label>
+                        <div style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "8px 12px", background: "#0f172a", borderRadius: 8,
+                          border: meta.isProductManager ? "1px solid #f472b640" : "1px solid #1e293b",
+                          marginBottom: 10,
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>PM Designation</div>
+                            <div style={{ fontSize: 10, color: "#475569" }}>Mark as a product manager</div>
+                          </div>
+                          <button
+                            onClick={() => togglePMDesignation(person.name)}
+                            style={{
+                              borderRadius: 20, padding: "4px 14px", fontSize: 11, fontWeight: 600,
+                              cursor: "pointer", transition: "all 0.15s", border: "1px solid",
+                              fontFamily: "inherit",
+                              ...(meta.isProductManager
+                                ? { background: "#f472b6", borderColor: "#f472b6", color: "white" }
+                                : { background: "#1e293b", borderColor: "#334155", color: "#64748b" }),
+                            }}
+                          >
+                            {meta.isProductManager ? "✓ Designated" : "Designate"}
+                          </button>
+                        </div>
+                        <div style={{ padding: "8px 12px", background: "#0f172a", borderRadius: 8, border: "1px solid #1e293b" }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 6 }}>Assigned Product Manager</div>
+                          {productManagers.length === 0 ? (
+                            <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic" }}>No product managers designated yet</div>
+                          ) : (
+                            <select value={meta.productManager || ""} onChange={e => setPersonPM(person.name, e.target.value || undefined)}
+                              style={{ width: "100%", background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "5px 8px", color: meta.productManager ? "#f472b6" : "#475569", fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                              <option value="">No manager assigned</option>
+                              {productManagers.filter(n => n !== person.name).map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Design Manager */}
+                      <div style={{ borderTop: "1px solid #1e293b", paddingTop: 14 }}>
+                        <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#f97316", display: "block", marginBottom: 8 }}>
+                          Design Manager
+                        </label>
+                        <div style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "8px 12px", background: "#0f172a", borderRadius: 8,
+                          border: meta.isDesignManager ? "1px solid #f9731640" : "1px solid #1e293b",
+                          marginBottom: 10,
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>DM Designation</div>
+                            <div style={{ fontSize: 10, color: "#475569" }}>Mark as a design manager</div>
+                          </div>
+                          <button
+                            onClick={() => toggleDMDesignation(person.name)}
+                            style={{
+                              borderRadius: 20, padding: "4px 14px", fontSize: 11, fontWeight: 600,
+                              cursor: "pointer", transition: "all 0.15s", border: "1px solid",
+                              fontFamily: "inherit",
+                              ...(meta.isDesignManager
+                                ? { background: "#f97316", borderColor: "#f97316", color: "white" }
+                                : { background: "#1e293b", borderColor: "#334155", color: "#64748b" }),
+                            }}
+                          >
+                            {meta.isDesignManager ? "✓ Designated" : "Designate"}
+                          </button>
+                        </div>
+                        <div style={{ padding: "8px 12px", background: "#0f172a", borderRadius: 8, border: "1px solid #1e293b" }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 6 }}>Assigned Design Manager</div>
+                          {designManagers.length === 0 ? (
+                            <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic" }}>No design managers designated yet</div>
+                          ) : (
+                            <select value={meta.designManager || ""} onChange={e => setPersonDM(person.name, e.target.value || undefined)}
+                              style={{ width: "100%", background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "5px 8px", color: meta.designManager ? "#f97316" : "#475569", fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                              <option value="">No manager assigned</option>
+                              {designManagers.filter(n => n !== person.name).map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Program Manager */}
+                      <div style={{ borderTop: "1px solid #1e293b", paddingTop: 14 }}>
+                        <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#10b981", display: "block", marginBottom: 8 }}>
+                          Program Manager
+                        </label>
+                        <div style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "8px 12px", background: "#0f172a", borderRadius: 8,
+                          border: meta.isProgramManager ? "1px solid #10b98140" : "1px solid #1e293b",
+                          marginBottom: 10,
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>PgM Designation</div>
+                            <div style={{ fontSize: 10, color: "#475569" }}>Mark as a program manager</div>
+                          </div>
+                          <button
+                            onClick={() => togglePgMDesignation(person.name)}
+                            style={{
+                              borderRadius: 20, padding: "4px 14px", fontSize: 11, fontWeight: 600,
+                              cursor: "pointer", transition: "all 0.15s", border: "1px solid",
+                              fontFamily: "inherit",
+                              ...(meta.isProgramManager
+                                ? { background: "#10b981", borderColor: "#10b981", color: "white" }
+                                : { background: "#1e293b", borderColor: "#334155", color: "#64748b" }),
+                            }}
+                          >
+                            {meta.isProgramManager ? "✓ Designated" : "Designate"}
+                          </button>
+                        </div>
+                        <div style={{ padding: "8px 12px", background: "#0f172a", borderRadius: 8, border: "1px solid #1e293b" }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 6 }}>Assigned Program Manager</div>
+                          {programManagers.length === 0 ? (
+                            <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic" }}>No program managers designated yet</div>
+                          ) : (
+                            <select value={meta.programManager || ""} onChange={e => setPersonPgM(person.name, e.target.value || undefined)}
+                              style={{ width: "100%", background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "5px 8px", color: meta.programManager ? "#10b981" : "#475569", fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                              <option value="">No manager assigned</option>
+                              {programManagers.filter(n => n !== person.name).map(n => <option key={n} value={n}>{n}</option>)}
                             </select>
                           )}
                         </div>
