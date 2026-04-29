@@ -93,7 +93,15 @@ const layerDescriptions: Record<string, any> = {
   product: { purpose: "Product judgment is the rarest and most expensive resource in the system.", activities: ["Forward-deploy as research method","Define outcomes, not features","Prioritize ruthlessly","Design rapid experiments","Sequence roadmap across layers"], outputs: ["Prioritized roadmap","Outcome statements","Experiment designs","Deployment intelligence","Dependency maps"], notThis: "A backlog administrator. A requirements writer.", flourishing: "Velocity is not inherently good. Product clarity honors the time of the humans on the other end." },
 };
 
+/* ─── PEOPLE REGISTRY TYPE ─── */
+// Stored as org.people: Record<string, PersonMeta>
+type PersonMeta = {
+  designations?: string[];      // e.g. ["engineering_manager"]
+  engineeringManager?: string;  // name of assigned EM
+};
+
 const initData = {
+  people: {} as Record<string, PersonMeta>,
   layers: [
     { id: "dataAnalytics", label: "Data & Analytics", sublabel: "Reporting · BI · Insights", lead: { name: "TBD", role: "Data & Analytics Lead" }, accent: "hsl(222 97% 55%)" },
     { id: "enterpriseSys", label: "Enterprise Systems", sublabel: "ERP · HRIS · Finance · Internal Tools", lead: { name: "TBD", role: "Enterprise Systems Lead" }, accent: "hsl(250 100% 69%)" },
@@ -184,7 +192,7 @@ function ET({ value, onChange, style }: { value: string; onChange: (v: string) =
 }
 
 /* ── Person chip ── */
-function PersonChip({ name, stage, onRename, onStageChange, onDelete, onJD, dimmed }: any) {
+function PersonChip({ name, stage, onRename, onStageChange, onDelete, onJD, dimmed, isEM, emName, onEMClick }: any) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
   const ref = useRef<HTMLInputElement>(null);
@@ -199,15 +207,31 @@ function PersonChip({ name, stage, onRename, onStageChange, onDelete, onJD, dimm
           {getInitials(name)}
         </AvatarFallback>
       </Avatar>
-      {editing ? (
-        <input ref={ref} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
-          onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(name); setEditing(false); } }}
-          className="bg-transparent border-none text-xs text-gray-900 outline-none font-medium"
-          style={{ width: Math.max(60, draft.length * 7) }} />
-      ) : (
-        <span onClick={() => setEditing(true)} className="cursor-text text-xs text-gray-700 font-medium">{name}</span>
-      )}
+      <div className="flex flex-col gap-0">
+        <div className="flex items-center gap-1">
+          {editing ? (
+            <input ref={ref} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
+              onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(name); setEditing(false); } }}
+              className="bg-transparent border-none text-xs text-gray-900 outline-none font-medium"
+              style={{ width: Math.max(60, draft.length * 7) }} />
+          ) : (
+            <span onClick={() => setEditing(true)} className="cursor-text text-xs text-gray-700 font-medium">{name}</span>
+          )}
+          {isEM && (
+            <span className="rounded px-1 py-px text-[8px] font-bold bg-indigo-100 text-indigo-700 leading-none whitespace-nowrap">EM</span>
+          )}
+        </div>
+        {emName && (
+          <span className="text-[9px] text-indigo-500 leading-tight">↳ EM: {emName}</span>
+        )}
+      </div>
       <div className="chip-actions">
+        {onEMClick && (
+          <button type="button" onClick={onEMClick} title="Engineering Manager" aria-label="Engineering Manager"
+            className={cn("flex size-4 items-center justify-center rounded transition-colors", isEM ? "text-indigo-600 hover:text-indigo-800" : "text-gray-400 hover:text-indigo-600")}>
+            <IconFileDescription size={11} />
+          </button>
+        )}
         {onJD && (
           <button type="button" onClick={onJD} title="Job Description" aria-label="Job Description"
             className="flex size-4 items-center justify-center rounded text-gray-400 hover:text-gray-600 transition-colors">
@@ -344,6 +368,7 @@ export default function MatrixOrg() {
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [addRoleTarget, setAddRoleTarget] = useState<any>(null);
   const [collapsedExecs, setCollapsedExecs] = useState(new Set<string>());
+  const [emModalPerson, setEmModalPerson] = useState<string | null>(null);
 
   const convexData = useQuery(api.orgData.get, { key: "default" });
   const saveToConvex = useMutation(api.orgData.save);
@@ -386,6 +411,58 @@ export default function MatrixOrg() {
   const updateExecRole = (id: string, v: string) => setOrg((o: any) => ({ ...o, executives: (o.executives || []).map((e: any) => e.id === id ? { ...e, role: v } : e) }));
   const updateExecLayers = (id: string, ls: string[]) => setOrg((o: any) => ({ ...o, executives: (o.executives || []).map((e: any) => e.id === id ? { ...e, layers: ls } : e) }));
   const toggleCollapse = (id: string) => setCollapsedExecs(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  // ─── People Registry Helpers ───
+  const getPeopleMeta = (name: string): PersonMeta => org.people?.[name] || {};
+  const isEngineeringManager = (name: string) => (getPeopleMeta(name).designations || []).includes("engineering_manager");
+  const getEM = (name: string) => getPeopleMeta(name).engineeringManager || null;
+
+  const toggleEMDesignation = (name: string) => {
+    setOrg((o: any) => {
+      const people = { ...(o.people || {}) };
+      const meta = { ...(people[name] || {}) };
+      const desigs = [...(meta.designations || [])];
+      const idx = desigs.indexOf("engineering_manager");
+      if (idx >= 0) desigs.splice(idx, 1);
+      else desigs.push("engineering_manager");
+      meta.designations = desigs;
+      people[name] = meta;
+      // If removed as EM, clear anyone who had them assigned
+      if (idx >= 0) {
+        for (const [pName, pMeta] of Object.entries(people)) {
+          if ((pMeta as PersonMeta).engineeringManager === name) {
+            people[pName] = { ...(pMeta as PersonMeta), engineeringManager: undefined };
+          }
+        }
+      }
+      return { ...o, people };
+    });
+  };
+
+  const setPersonEM = (personName: string, emName: string | undefined) => {
+    setOrg((o: any) => {
+      const people = { ...(o.people || {}) };
+      const meta = { ...(people[personName] || {}) };
+      meta.engineeringManager = emName;
+      people[personName] = meta;
+      return { ...o, people };
+    });
+  };
+
+  // Collect all unique person names from the matrix
+  const allPeopleNames = (() => {
+    const names = new Set<string>();
+    (org.products || []).forEach((p: any) => {
+      Object.values(p.cells || {}).forEach((items: any) => {
+        (items || []).forEach((item: any) => names.add(item.name));
+      });
+    });
+    (org.innovation || []).forEach((name: string) => names.add(name));
+    return Array.from(names).sort();
+  })();
+
+  // Get list of designated EMs
+  const engineeringManagers = allPeopleNames.filter(isEngineeringManager);
 
   // Build exec coverage map
   const coverage: Record<string, string> = {};
@@ -445,6 +522,81 @@ export default function MatrixOrg() {
           </div>
         )}
       </Modal>
+      {/* EM Management Modal */}
+      <Modal opened={!!emModalPerson} onClose={() => setEmModalPerson(null)} title={`Engineering Manager — ${emModalPerson ?? ""}`} size="md">
+        {emModalPerson && (() => {
+          const personIsEM = isEngineeringManager(emModalPerson);
+          const currentEM = getEM(emModalPerson);
+          return (
+            <div className="flex flex-col gap-5 mt-1">
+              {/* Designation toggle */}
+              <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Engineering Manager Designation</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Mark this person as an engineering manager</p>
+                </div>
+                <button
+                  onClick={() => toggleEMDesignation(emModalPerson)}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+                    personIsEM
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  )}
+                >
+                  {personIsEM ? "✓ Designated EM" : "Designate as EM"}
+                </button>
+              </div>
+
+              <Separator />
+
+              {/* Assign EM */}
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">Assigned Engineering Manager</p>
+                <p className="text-xs text-gray-500 mb-3">Select from people designated as engineering managers</p>
+                {engineeringManagers.length === 0 ? (
+                  <div className="rounded-xl bg-yellow-50 border border-yellow-200 px-4 py-3">
+                    <p className="text-xs text-yellow-700">No engineering managers designated yet. Designate someone as an EM first.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {/* None option */}
+                    <label className="flex items-center gap-2.5 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="em-select"
+                        checked={!currentEM}
+                        onChange={() => setPersonEM(emModalPerson, undefined)}
+                        className="accent-indigo-600"
+                      />
+                      <span className="text-sm text-gray-500 italic">No manager assigned</span>
+                    </label>
+                    {engineeringManagers.filter(n => n !== emModalPerson).map(emName => (
+                      <label key={emName} className="flex items-center gap-2.5 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input
+                          type="radio"
+                          name="em-select"
+                          checked={currentEM === emName}
+                          onChange={() => setPersonEM(emModalPerson, emName)}
+                          className="accent-indigo-600"
+                        />
+                        <Avatar className="size-5 shrink-0">
+                          <AvatarFallback seed={emName} className="text-[6px] font-bold">
+                            {getInitials(emName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm text-gray-700 font-medium">{emName}</span>
+                        <span className="rounded px-1.5 py-0.5 text-[9px] font-bold bg-indigo-100 text-indigo-700">EM</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
       <AddColumnModal opened={addColOpen} onClose={() => setAddColOpen(false)} onAdd={addProduct} />
       <AddRowModal opened={addRowOpen} onClose={() => setAddRowOpen(false)} onAdd={addLayer} />
       <AddRoleModal target={addRoleTarget} onClose={() => setAddRoleTarget(null)} onAdd={(n: string, s: string) => { if (addRoleTarget) addCellItem(addRoleTarget.prodId, addRoleTarget.layerId, n, s); setAddRoleTarget(null); }} />
@@ -648,6 +800,9 @@ export default function MatrixOrg() {
                                 {items.map((item: any, idx: number) => (
                                   <PersonChip key={idx} name={item.name} stage={item.stage}
                                     dimmed={stageFilter !== "all" && item.stage !== stageFilter && item.stage !== "all"}
+                                    isEM={isEngineeringManager(item.name)}
+                                    emName={getEM(item.name)}
+                                    onEMClick={() => setEmModalPerson(item.name)}
                                     onRename={(v: string) => updateCellItem(prod.id, layer.id, idx, "name", v)}
                                     onStageChange={(v: string) => updateCellItem(prod.id, layer.id, idx, "stage", v)}
                                     onDelete={() => deleteCellItem(prod.id, layer.id, idx)}
@@ -687,6 +842,9 @@ export default function MatrixOrg() {
                   <div className="flex flex-wrap gap-1">
                     {(org.innovation || []).map((name: string, idx: number) => (
                       <PersonChip key={idx} name={name} stage="all"
+                        isEM={isEngineeringManager(name)}
+                        emName={getEM(name)}
+                        onEMClick={() => setEmModalPerson(name)}
                         onRename={(v: string) => setOrg((o: any) => { const a = [...o.innovation]; a[idx] = v; return { ...o, innovation: a }; })}
                         onStageChange={() => {}}
                         onDelete={() => setOrg((o: any) => ({ ...o, innovation: o.innovation.filter((_: any, i: number) => i !== idx) }))} />
