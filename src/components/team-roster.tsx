@@ -34,6 +34,8 @@ interface RosterMeta {
   phone: string;
   notes: string;
   status: "employee" | "provisional" | "";
+  isEngineeringManager?: boolean;
+  engineeringManager?: string; // name of assigned EM
 }
 
 /* ─── STAGES ─── */
@@ -843,6 +845,37 @@ export default function TeamRoster() {
     setRosterMeta(prev => ({ ...prev, [name]: { ...getMeta(name), ...updates } }));
   };
 
+  // Engineering Manager helpers
+  const toggleEMDesignation = (name: string) => {
+    const meta = getMeta(name);
+    const wasEM = !!meta.isEngineeringManager;
+    updateMeta(name, { isEngineeringManager: !wasEM });
+    // If removing EM designation, clear anyone who had them assigned
+    if (wasEM) {
+      setRosterMeta(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(pName => {
+          if (next[pName]?.engineeringManager === name) {
+            next[pName] = { ...next[pName], engineeringManager: undefined };
+          }
+        });
+        return next;
+      });
+    }
+  };
+
+  const setPersonEM = (personName: string, emName: string | undefined) => {
+    updateMeta(personName, { engineeringManager: emName });
+  };
+
+  // Get list of designated EMs
+  const engineeringManagers = useMemo(() => {
+    return Object.entries(rosterMeta)
+      .filter(([key, meta]) => key !== "_customJDs" && meta?.isEngineeringManager)
+      .map(([name]) => name)
+      .sort();
+  }, [rosterMeta]);
+
   // Remove person from roster (metadata + matrix assignments)
   const removePerson = (personName: string) => {
     // Remove from roster metadata
@@ -1241,7 +1274,7 @@ export default function TeamRoster() {
         {/* Header row */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(80px, 0.5fr) minmax(100px, 0.8fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr)",
+          gridTemplateColumns: "minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(80px, 0.5fr) minmax(100px, 0.8fr) minmax(90px, 0.6fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr)",
           gap: 0, padding: "8px 16px",
           background: "#0f172a",
           borderBottom: "1px solid #1e293b",
@@ -1250,6 +1283,7 @@ export default function TeamRoster() {
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Role</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Stage</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Reports To</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#818cf8" }}>Eng. Manager</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Customers</span>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Capabilities</span>
         </div>
@@ -1266,7 +1300,7 @@ export default function TeamRoster() {
                 onClick={() => setExpandedPerson(isExpanded ? null : person.name)}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(80px, 0.5fr) minmax(100px, 0.8fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr)",
+                  gridTemplateColumns: "minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(80px, 0.5fr) minmax(100px, 0.8fr) minmax(90px, 0.6fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr)",
                   gap: 0, padding: "10px 16px",
                   alignItems: "center",
                   background: isExpanded ? "#111827" : "transparent",
@@ -1298,8 +1332,16 @@ export default function TeamRoster() {
                       {meta.status === "provisional" && (
                         <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, background: "#f59e0b20", color: "#f59e0b", border: "1px solid #f59e0b30", whiteSpace: "nowrap" }}>PROVISIONAL</span>
                       )}
+                      {meta.isEngineeringManager && (
+                        <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, background: "#6366f120", color: "#818cf8", border: "1px solid #6366f130", whiteSpace: "nowrap" }}>EM</span>
+                      )}
                     </div>
-                    {person.layerLeaders.length > 0 && (
+                    {meta.engineeringManager && (
+                      <div style={{ fontSize: 10, color: "#818cf8", marginTop: 1 }}>
+                        ↳ EM: {meta.engineeringManager}
+                      </div>
+                    )}
+                    {!meta.engineeringManager && person.layerLeaders.length > 0 && (
                       <div style={{ fontSize: 10, color: "#475569", marginTop: 1 }}>
                         {[...new Set(person.assignments.map((a: any) => a.layerLabel))].slice(0, 2).join(" · ")}
                       </div>
@@ -1347,6 +1389,17 @@ export default function TeamRoster() {
                     person.layerLeaders.slice(0, 2).map((ll: any, i: number) => (
                       <span key={i} style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>{ll.leaderName}</span>
                     ))
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#334155" }}>—</span>
+                  )}
+                </div>
+
+                {/* Engineering Manager */}
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  {meta.engineeringManager ? (
+                    <span style={{ fontSize: 11, color: "#818cf8", lineHeight: 1.4 }}>{meta.engineeringManager}</span>
+                  ) : meta.isEngineeringManager ? (
+                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 700, background: "#6366f120", color: "#818cf8", border: "1px solid #6366f130", display: "inline-block", width: "fit-content" }}>IS EM</span>
                   ) : (
                     <span style={{ fontSize: 11, color: "#334155" }}>—</span>
                   )}
@@ -1447,6 +1500,65 @@ export default function TeamRoster() {
                           <option value="employee">Gloo Employee</option>
                           <option value="provisional">Provisional</option>
                         </select>
+                      </div>
+
+                      {/* Engineering Manager */}
+                      <div style={{ borderTop: "1px solid #1e293b", paddingTop: 14 }}>
+                        <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#818cf8", display: "block", marginBottom: 8 }}>
+                          Engineering Manager
+                        </label>
+                        {/* Designation toggle */}
+                        <div style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "8px 12px", background: "#0f172a", borderRadius: 8,
+                          border: meta.isEngineeringManager ? "1px solid #6366f140" : "1px solid #1e293b",
+                          marginBottom: 10,
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>EM Designation</div>
+                            <div style={{ fontSize: 10, color: "#475569" }}>Mark as an engineering manager</div>
+                          </div>
+                          <button
+                            onClick={() => toggleEMDesignation(person.name)}
+                            style={{
+                              borderRadius: 20, padding: "4px 14px", fontSize: 11, fontWeight: 600,
+                              cursor: "pointer", transition: "all 0.15s", border: "1px solid",
+                              fontFamily: "inherit",
+                              ...(meta.isEngineeringManager
+                                ? { background: "#6366f1", borderColor: "#6366f1", color: "white" }
+                                : { background: "#1e293b", borderColor: "#334155", color: "#64748b" }),
+                            }}
+                          >
+                            {meta.isEngineeringManager ? "✓ Designated" : "Designate"}
+                          </button>
+                        </div>
+                        {/* Assign EM */}
+                        <div style={{
+                          padding: "8px 12px", background: "#0f172a", borderRadius: 8,
+                          border: "1px solid #1e293b",
+                        }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 6 }}>Assigned Engineering Manager</div>
+                          {engineeringManagers.length === 0 ? (
+                            <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic" }}>
+                              No engineering managers designated yet
+                            </div>
+                          ) : (
+                            <select
+                              value={meta.engineeringManager || ""}
+                              onChange={e => setPersonEM(person.name, e.target.value || undefined)}
+                              style={{
+                                width: "100%", background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+                                padding: "5px 8px", color: meta.engineeringManager ? "#818cf8" : "#475569",
+                                fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer",
+                              }}
+                            >
+                              <option value="">No manager assigned</option>
+                              {engineeringManagers.filter(n => n !== person.name).map(emName => (
+                                <option key={emName} value={emName}>{emName}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
                       </div>
                     </div>
 
