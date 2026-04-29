@@ -69,6 +69,10 @@ export default function CustomerRoster() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [userEdited, setUserEdited] = useState(false);
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerType, setNewCustomerType] = useState<string>("360");
+  const [newCustomerCategory, setNewCustomerCategory] = useState<string>("");
   const saveTimer = useRef<any>(null);
 
   // Load org data from Convex
@@ -182,6 +186,33 @@ export default function CustomerRoster() {
     }));
   };
 
+  const addCustomer = () => {
+    const name = newCustomerName.trim();
+    if (!name) return;
+    const id = Math.random().toString(36).slice(2, 8);
+    editOrg((prev: any) => ({
+      ...prev,
+      products: [
+        ...prev.products,
+        { id, name, type: newCustomerType, productLead: "TBD", cells: {}, ...(newCustomerCategory ? { category: newCustomerCategory } : {}) },
+      ],
+    }));
+    setNewCustomerName("");
+    setNewCustomerType("360");
+    setNewCustomerCategory("");
+    setShowAddCustomer(false);
+    // Auto-expand the new customer
+    setTimeout(() => setExpandedCustomer(id), 100);
+  };
+
+  const deleteCustomer = (productId: string, productName: string) => {
+    if (!window.confirm(`Remove "${productName}"? This will delete all assignments.`)) return;
+    editOrg((prev: any) => ({
+      ...prev,
+      products: prev.products.filter((p: any) => p.id !== productId),
+    }));
+  };
+
   if (!org) {
     return (
       <div style={{ minHeight: "100vh", background: "#030712", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -192,11 +223,97 @@ export default function CustomerRoster() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#030712", color: "#e2e8f0", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      {/* Add Customer Modal */}
+      {showAddCustomer && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+        }} onClick={() => setShowAddCustomer(false)}>
+          <form onSubmit={e => { e.preventDefault(); addCustomer(); }} onClick={e => e.stopPropagation()} style={{
+            background: "#0f172a", border: "1px solid #1e293b", borderRadius: 16, padding: 28,
+            maxWidth: 440, width: "90%", color: "#e2e8f0",
+          }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#f1f5f9", margin: "0 0 20px" }}>Add Customer</h3>
+
+            {/* Name */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#475569", display: "block", marginBottom: 6 }}>Customer Name</label>
+              <input value={newCustomerName} onChange={e => setNewCustomerName(e.target.value)} autoFocus
+                placeholder="e.g. Wycliffe, Jessup..."
+                style={{
+                  width: "100%", background: "#1e293b", border: "1px solid #334155", borderRadius: 8,
+                  padding: "10px 14px", color: "#e2e8f0", fontSize: 14, fontFamily: "inherit", outline: "none",
+                  boxSizing: "border-box",
+                }} />
+            </div>
+
+            {/* Type */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#475569", display: "block", marginBottom: 6 }}>Product Type</label>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[
+                  { value: "360", label: "360°", color: "#f59e0b" },
+                  { value: "church", label: "Church", color: "#3b82f6" },
+                  { value: "gloo", label: "Gloo", color: "#06b6d4" },
+                ].map(t => (
+                  <button key={t.value} type="button" onClick={() => setNewCustomerType(t.value)} style={{
+                    padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                    ...(newCustomerType === t.value
+                      ? { background: t.color + "30", border: `1px solid ${t.color}`, color: t.color }
+                      : { background: "transparent", border: "1px solid #1e293b", color: "#475569" }),
+                  }}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Category */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#475569", display: "block", marginBottom: 6 }}>Category (optional)</label>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {Object.entries(NONPROFIT_CATEGORIES).map(([key, cat]) => (
+                  <button key={key} type="button" onClick={() => setNewCustomerCategory(newCustomerCategory === key ? "" : key)} style={{
+                    padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                    ...(newCustomerCategory === key
+                      ? { background: cat.color, border: `1px solid ${cat.color}`, color: "white" }
+                      : { background: "transparent", border: "1px solid #1e293b", color: "#475569" }),
+                  }}>
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button type="button" onClick={() => setShowAddCustomer(false)} style={{
+                background: "none", border: "1px solid #334155", borderRadius: 8, padding: "8px 18px",
+                color: "#64748b", cursor: "pointer", fontSize: 12, fontFamily: "inherit",
+              }}>Cancel</button>
+              <button type="submit" disabled={!newCustomerName.trim()} style={{
+                background: newCustomerName.trim() ? "#064e3b" : "#1e293b",
+                border: `1px solid ${newCustomerName.trim() ? "#10b981" : "#334155"}`,
+                borderRadius: 8, padding: "8px 18px",
+                color: newCustomerName.trim() ? "#10b981" : "#475569",
+                cursor: newCustomerName.trim() ? "pointer" : "default",
+                fontSize: 12, fontFamily: "inherit", fontWeight: 600,
+              }}>Add Customer</button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <SharedHeader
         title="Customer Roster"
         subtitle={`${customers.length} customers · ${customers.reduce((s: number, c: any) => s + c.people.length, 0)} assignments`}
         activePage="customers"
         saveStatus={userEdited ? "saving" : "idle"}
+        actions={[
+          { label: "+ ADD CUSTOMER", onClick: () => setShowAddCustomer(true), variant: "success" as const },
+        ]}
       >
         {/* Search */}
         <div style={{ display: "flex", justifyContent: "center" }}>
@@ -355,7 +472,7 @@ export default function CustomerRoster() {
                       borderBottom: "1px solid #1e293b",
                     }}>
                       <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: "#475569" }}>Category:</span>
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 6, flex: 1 }}>
                         {Object.entries(NONPROFIT_CATEGORIES).map(([key, c]) => (
                           <button key={key}
                             onClick={() => setCategory(customer.id, customer.category === key ? "" : key)}
@@ -371,6 +488,18 @@ export default function CustomerRoster() {
                           </button>
                         ))}
                       </div>
+                      <button
+                        onClick={() => deleteCustomer(customer.id, customer.name)}
+                        style={{
+                          marginLeft: "auto", padding: "3px 10px", borderRadius: 8, fontSize: 10, fontWeight: 600,
+                          cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                          background: "transparent", border: "1px solid #1e293b", color: "#475569",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#ef4444"; e.currentTarget.style.color = "#ef4444"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = "#475569"; }}
+                      >
+                        Remove Customer
+                      </button>
                     </div>
 
                     {/* People by layer */}
