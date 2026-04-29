@@ -530,28 +530,55 @@ export default function MatrixOrg() {
   const saveToConvex = useMutation(api.orgData.save);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load from Convex on first data
+  // Track whether user has made edits (don't auto-save defaults)
+  const [userEdited, setUserEdited] = useState(false);
+  const [hadRemoteData, setHadRemoteData] = useState(false);
+
+  // Wrap setOrg to track user edits
+  const origSetOrg = setOrg;
+  const editOrg: typeof setOrg = (updater) => { setUserEdited(true); origSetOrg(updater); };
+
+  // Load from Convex on first data (with localStorage recovery)
   useEffect(() => {
     if (loaded) return;
     if (convexData === undefined) return;
     if (convexData && convexData.data) {
-      try { setOrg(JSON.parse(convexData.data)); } catch {}
+      try {
+        setOrg(JSON.parse(convexData.data));
+        setHadRemoteData(true);
+      } catch {}
+    } else {
+      // No data in Convex — try localStorage backup
+      try {
+        const backup = localStorage.getItem("matrix-org-backup");
+        if (backup) {
+          const parsed = JSON.parse(backup);
+          if (parsed && parsed.layers && parsed.products) {
+            setOrg(parsed);
+            setHadRemoteData(true); // treat backup as real data
+            setUserEdited(true); // trigger save to restore to Convex
+          }
+        }
+      } catch {}
     }
     setLoaded(true);
   }, [convexData, loaded]);
 
-  // Debounced auto-save to Convex
+  // Debounced auto-save to Convex (only if user actually edited or data existed before)
   useEffect(() => {
     if (!loaded) return;
+    if (!userEdited && !hadRemoteData) return; // Don't save defaults if DB was empty and user hasn't edited
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       setSaving(true);
+      // Backup to localStorage before saving
+      try { localStorage.setItem("matrix-org-backup", JSON.stringify(org)); } catch {}
       saveToConvex({ key: "default", data: JSON.stringify(org) })
         .then(() => { setSaved(true); setSaving(false); setTimeout(() => setSaved(false), 2000); })
         .catch(() => setSaving(false));
     }, 800);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [org, loaded, saveToConvex]);
+  }, [org, loaded, userEdited, hadRemoteData, saveToConvex]);
 
   const [showAddCol, setShowAddCol] = useState(false);
   const [showAddRow, setShowAddRow] = useState(false);
@@ -561,35 +588,35 @@ export default function MatrixOrg() {
   const toggleCollapse = (id) => setCollapsedExecs(s => { const n = new Set(s); if(n.has(id)) n.delete(id); else n.add(id); return n; });
   const [assignOpen, setAssignOpen] = useState<any>(null);
 
-  const updateLayerLead   = (id,v) => setOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,lead:{...l.lead,name:v}}:l)}));
-  const updateLayerLabel  = (id,v) => setOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,label:v}:l)}));
-  const updateLayerSublabel = (id,v) => setOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,sublabel:v}:l)}));
-  const addLayer          = (layer) => { const id=uid(); setOrg(o=>({...o,layers:[...o.layers,{...layer,id}]})); setShowAddRow(false); };
-  const removeLayer       = (id)    => setOrg(o=>({...o,layers:o.layers.filter(l=>l.id!==id)}));
-  const moveLayer         = (id,dir)=> setOrg(o=>{ const arr=[...o.layers]; const i=arr.findIndex(l=>l.id===id); const j=i+dir; if(j<0||j>=arr.length)return o; [arr[i],arr[j]]=[arr[j],arr[i]]; return{...o,layers:arr}; });
+  const updateLayerLead   = (id,v) => editOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,lead:{...l.lead,name:v}}:l)}));
+  const updateLayerLabel  = (id,v) => editOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,label:v}:l)}));
+  const updateLayerSublabel = (id,v) => editOrg(o=>({...o,layers:o.layers.map(l=>l.id===id?{...l,sublabel:v}:l)}));
+  const addLayer          = (layer) => { const id=uid(); editOrg(o=>({...o,layers:[...o.layers,{...layer,id}]})); setShowAddRow(false); };
+  const removeLayer       = (id)    => editOrg(o=>({...o,layers:o.layers.filter(l=>l.id!==id)}));
+  const moveLayer         = (id,dir)=> editOrg(o=>{ const arr=[...o.layers]; const i=arr.findIndex(l=>l.id===id); const j=i+dir; if(j<0||j>=arr.length)return o; [arr[i],arr[j]]=[arr[j],arr[i]]; return{...o,layers:arr}; });
 
-  const updateProductName = (id,v) => setOrg(o=>({...o,products:o.products.map(p=>p.id===id?{...p,name:v}:p)}));
-  const updateProductLead = (id,v) => setOrg(o=>({...o,products:o.products.map(p=>p.id===id?{...p,productLead:v}:p)}));
-  const addProduct        = ({name,type,productLead}) => { const id=uid(); const cells={}; org.layers.forEach(l=>{cells[l.id]=[];}); setOrg(o=>({...o,products:[...o.products,{id,name,type,productLead,cells}]})); setShowAddCol(false); };
-  const removeProduct     = (id)   => setOrg(o=>({...o,products:o.products.filter(p=>p.id!==id)}));
-  const moveProduct       = (id,dir)=> setOrg(o=>{ const arr=[...o.products]; const i=arr.findIndex(p=>p.id===id); const j=i+dir; if(j<0||j>=arr.length)return o; [arr[i],arr[j]]=[arr[j],arr[i]]; return{...o,products:arr}; });
+  const updateProductName = (id,v) => editOrg(o=>({...o,products:o.products.map(p=>p.id===id?{...p,name:v}:p)}));
+  const updateProductLead = (id,v) => editOrg(o=>({...o,products:o.products.map(p=>p.id===id?{...p,productLead:v}:p)}));
+  const addProduct        = ({name,type,productLead}) => { const id=uid(); const cells={}; org.layers.forEach(l=>{cells[l.id]=[];}); editOrg(o=>({...o,products:[...o.products,{id,name,type,productLead,cells}]})); setShowAddCol(false); };
+  const removeProduct     = (id)   => editOrg(o=>({...o,products:o.products.filter(p=>p.id!==id)}));
+  const moveProduct       = (id,dir)=> editOrg(o=>{ const arr=[...o.products]; const i=arr.findIndex(p=>p.id===id); const j=i+dir; if(j<0||j>=arr.length)return o; [arr[i],arr[j]]=[arr[j],arr[i]]; return{...o,products:arr}; });
 
-  const updateCellItem    = (pId,lId,idx,field,val) => setOrg(o=>({...o,products:o.products.map(p=>{if(p.id!==pId)return p;const n=[...(p.cells[lId]||[])];n[idx]={...n[idx],[field]:val};return{...p,cells:{...p.cells,[lId]:n}};})}));
-  const deleteCellItem    = (pId,lId,idx)            => setOrg(o=>({...o,products:o.products.map(p=>{if(p.id!==pId)return p;const n=[...(p.cells[lId]||[])];n.splice(idx,1);return{...p,cells:{...p.cells,[lId]:n}};})}));
-  const addCellItem       = (pId,lId,name,stage)     => setOrg(o=>({...o,products:o.products.map(p=>{if(p.id!==pId)return p;return{...p,cells:{...p.cells,[lId]:[...(p.cells[lId]||[]),{name,stage}]}};})}));
+  const updateCellItem    = (pId,lId,idx,field,val) => editOrg(o=>({...o,products:o.products.map(p=>{if(p.id!==pId)return p;const n=[...(p.cells[lId]||[])];n[idx]={...n[idx],[field]:val};return{...p,cells:{...p.cells,[lId]:n}};})}));
+  const deleteCellItem    = (pId,lId,idx)            => editOrg(o=>({...o,products:o.products.map(p=>{if(p.id!==pId)return p;const n=[...(p.cells[lId]||[])];n.splice(idx,1);return{...p,cells:{...p.cells,[lId]:n}};})}));
+  const addCellItem       = (pId,lId,name,stage)     => editOrg(o=>({...o,products:o.products.map(p=>{if(p.id!==pId)return p;return{...p,cells:{...p.cells,[lId]:[...(p.cells[lId]||[]),{name,stage}]}};})}));
 
-  const updateInnovation     = (idx,v) => setOrg(o=>{const a=[...o.innovation];a[idx]=v;return{...o,innovation:a};});
-  const updateInnovationLead = (v)     => setOrg(o=>({...o,innovationLead:v}));
+  const updateInnovation     = (idx,v) => editOrg(o=>{const a=[...o.innovation];a[idx]=v;return{...o,innovation:a};});
+  const updateInnovationLead = (v)     => editOrg(o=>({...o,innovationLead:v}));
 
   const addExecutive = () => {
     const newExec = { id:uid(), name:"New Leader", role:"Executive Role", color:"#1a2030", accent:"#60a5fa", layers:[] };
-    setOrg(o=>({...o, executives:[...(o.executives||[]), newExec]}));
+    editOrg(o=>({...o, executives:[...(o.executives||[]), newExec]}));
     setAssignOpen(newExec);
   };
-  const removeExecutive  = (id)    => setOrg(o=>({...o, executives:(o.executives||[]).filter(e=>e.id!==id)}));
-  const updateExecName   = (id,v)  => setOrg(o=>({...o, executives:(o.executives||[]).map(e=>e.id===id?{...e,name:v}:e)}));
-  const updateExecRole   = (id,v)  => setOrg(o=>({...o, executives:(o.executives||[]).map(e=>e.id===id?{...e,role:v}:e)}));
-  const updateExecLayers = (id,ls) => setOrg(o=>({...o, executives:(o.executives||[]).map(e=>e.id===id?{...e,layers:ls}:e)}));
+  const removeExecutive  = (id)    => editOrg(o=>({...o, executives:(o.executives||[]).filter(e=>e.id!==id)}));
+  const updateExecName   = (id,v)  => editOrg(o=>({...o, executives:(o.executives||[]).map(e=>e.id===id?{...e,name:v}:e)}));
+  const updateExecRole   = (id,v)  => editOrg(o=>({...o, executives:(o.executives||[]).map(e=>e.id===id?{...e,role:v}:e)}));
+  const updateExecLayers = (id,ls) => editOrg(o=>({...o, executives:(o.executives||[]).map(e=>e.id===id?{...e,layers:ls}:e)}));
 
   const btnStyle = (accent="#4a9eff") => ({
     display:"inline-flex", alignItems:"center", gap:"5px",
