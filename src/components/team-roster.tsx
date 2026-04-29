@@ -1319,6 +1319,13 @@ export default function TeamRoster() {
             }}>
               <ArrowLeft size={12} /> Matrix View
             </a>
+            <a href="/customers" style={{
+              display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 20, padding: "6px 14px",
+              fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)",
+              textDecoration: "none", transition: "all 0.15s", border: "1px solid rgba(255,255,255,0.06)",
+            }}>
+              🏢 Customers
+            </a>
           </div>
         </div>
       </div>

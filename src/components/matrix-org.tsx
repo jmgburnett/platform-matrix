@@ -600,6 +600,9 @@ export default function MatrixOrg() {
           <a href="/roster" style={{ padding:"5px 14px", borderRadius:"16px", fontSize:"11px", fontWeight:"500", color:"rgba(255,255,255,0.7)", background:"rgba(255,255,255,0.1)", textDecoration:"none", border:"1px solid rgba(255,255,255,0.06)", transition:"all 0.15s", display:"inline-flex", alignItems:"center", gap:"6px" }}>
             👤 Roster
           </a>
+          <a href="/customers" style={{ padding:"5px 14px", borderRadius:"16px", fontSize:"11px", fontWeight:"500", color:"rgba(255,255,255,0.7)", background:"rgba(255,255,255,0.1)", textDecoration:"none", border:"1px solid rgba(255,255,255,0.06)", transition:"all 0.15s", display:"inline-flex", alignItems:"center", gap:"6px" }}>
+            🏢 Customers
+          </a>
         </div>
       </div>
 
