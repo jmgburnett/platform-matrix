@@ -504,11 +504,25 @@ export default function MatrixOrg() {
   useEffect(() => {
     if (!loaded) return;
     if (!userEdited && !hadRemoteData) return; // Don't save defaults if DB was empty and user hasn't edited
+
+    // DATA PROTECTION: Don't save if the data looks like it was reset to defaults
+    // (all products have empty cells but we previously had data)
+    const totalPeople = org.products.reduce((sum: number, p: any) =>
+      sum + Object.values(p.cells || {}).reduce((s: number, arr: any) => s + (Array.isArray(arr) ? arr.length : 0), 0), 0);
+    if (hadRemoteData && totalPeople === 0) {
+      console.warn("[Matrix] Blocked save: all cells empty but had remote data. Likely accidental reset.");
+      return;
+    }
+
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       setSaving(true);
-      // Backup to localStorage before saving
-      try { localStorage.setItem("matrix-org-backup", JSON.stringify(org)); } catch {}
+      // Backup to localStorage before saving (keep previous version too)
+      try {
+        const prev = localStorage.getItem("matrix-org-backup");
+        if (prev) localStorage.setItem("matrix-org-backup-prev", prev);
+        localStorage.setItem("matrix-org-backup", JSON.stringify(org));
+      } catch {}
       saveToConvex({ key: "default", data: JSON.stringify(org) })
         .then(() => { setSaved(true); setSaving(false); setTimeout(() => setSaved(false), 2000); })
         .catch(() => setSaving(false));
@@ -590,7 +604,7 @@ export default function MatrixOrg() {
         saveStatus={saved ? "saved" : saving ? "saving" : "idle"}
         actions={[
           { label: "EXPORT", onClick: () => navigator.clipboard.writeText(JSON.stringify(org, null, 2)).then(() => alert("Copied!")), variant: "success" },
-          { label: "RESET", onClick: () => { if (window.confirm("Reset to defaults?")) setOrg(initData); }, variant: "danger" },
+          { label: "RESET", onClick: () => { if (window.confirm("⚠️ This will DELETE all people assignments and reset to empty defaults.\n\nType 'RESET' in the next prompt to confirm.") && window.prompt("Type RESET to confirm:") === "RESET") { editOrg(() => initData); } }, variant: "danger" },
         ]}
       >
         {/* View toggle */}
