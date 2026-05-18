@@ -469,6 +469,8 @@ export default function MatrixOrg() {
   // Track whether user has made edits (don't auto-save defaults)
   const [userEdited, setUserEdited] = useState(false);
   const [hadRemoteData, setHadRemoteData] = useState(false);
+  // Track the Convex updatedAt timestamp we last loaded, to detect remote changes
+  const lastRemoteTimestampRef = useRef<number>(0);
 
   // Wrap setOrg to track user edits
   const origSetOrg = setOrg;
@@ -482,6 +484,7 @@ export default function MatrixOrg() {
       try {
         setOrg(JSON.parse(convexData.data));
         setHadRemoteData(true);
+        lastRemoteTimestampRef.current = convexData.updatedAt || 0;
       } catch {}
     } else {
       // No data in Convex — try localStorage backup
@@ -500,10 +503,25 @@ export default function MatrixOrg() {
     setLoaded(true);
   }, [convexData, loaded]);
 
-  // Debounced auto-save to Convex (only if user actually edited or data existed before)
+  // Re-sync with Convex when remote data changes AND user hasn't made local edits.
+  // This prevents stale tabs from overwriting newer data on next edit.
   useEffect(() => {
     if (!loaded) return;
-    if (!userEdited && !hadRemoteData) return; // Don't save defaults if DB was empty and user hasn't edited
+    if (userEdited) return; // user has local changes, don't overwrite
+    if (!convexData?.data) return;
+    const remoteTs = convexData.updatedAt || 0;
+    if (remoteTs > lastRemoteTimestampRef.current) {
+      try {
+        setOrg(JSON.parse(convexData.data));
+        lastRemoteTimestampRef.current = remoteTs;
+      } catch {}
+    }
+  }, [convexData, loaded, userEdited]);
+
+  // Debounced auto-save to Convex — ONLY when user has explicitly edited
+  useEffect(() => {
+    if (!loaded) return;
+    if (!userEdited) return; // Only save when user actually made changes
 
     // DATA PROTECTION: Don't save if the data looks like it was reset to defaults
     // (all products have empty cells but we previously had data)
@@ -524,7 +542,13 @@ export default function MatrixOrg() {
         localStorage.setItem("matrix-org-backup", JSON.stringify(org));
       } catch {}
       saveToConvex({ key: "default", data: JSON.stringify(org) })
-        .then(() => { setSaved(true); setSaving(false); setTimeout(() => setSaved(false), 2000); })
+        .then(() => {
+          setSaved(true); setSaving(false); setTimeout(() => setSaved(false), 2000);
+          // After successful save, update the remote timestamp so we don't
+          // re-sync over our own save, and clear the dirty flag
+          lastRemoteTimestampRef.current = Date.now();
+          setUserEdited(false);
+        })
         .catch(() => setSaving(false));
     }, 800);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
